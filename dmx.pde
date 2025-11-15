@@ -311,11 +311,8 @@ void drawPositionTab(int yPos) {
 
   // XY Speed (Fine Mode 아래 40px 마진)
   int speedY = rightY + 50;
-  fill(255);
-  textSize(14);
-  text("XY Speed:", rightX, speedY);
-  drawSlider(rightX, speedY + 10, 250, "", xySpeed, 0, 255);
-  drawValueBox(rightX + 260, speedY + 10, xySpeed, null);
+  drawSlider(rightX, speedY, 250, "XY Speed", xySpeed, 0, 255);
+  drawValueBox(rightX + 260, speedY, xySpeed, null);
 
   // Fine 채널 정보 (Speed 아래 60px 마진)
   if (fineMode) {
@@ -356,11 +353,8 @@ void drawLightTab(int yPos) {
 
   // Color Effect 섹션 (Color Wheel 아래)
   int effectY = startY + 140;
-  fill(255);
-  textSize(14);
-  text("Color Effect", colorX, effectY);
-  drawSlider(colorX, effectY + 10, 220, "", colorEffect, 0, 255);
-  drawValueBox(colorX + 230, effectY + 10, colorEffect, null);
+  drawSlider(colorX, effectY, 220, "Color Effect", colorEffect, 0, 255);
+  drawValueBox(colorX + 230, effectY, colorEffect, null);
 }
 
 // ============================================
@@ -398,11 +392,8 @@ void drawGoboTab(int yPos) {
 
   // Gobo Rotation 슬라이더 (버튼들 아래 + 마진)
   int rotSliderY = startY + 200;
-  fill(255);
-  textSize(14);
-  text("Gobo Rotation (CH12)", startX, rotSliderY);
-  drawSlider(startX, rotSliderY + 10, 350, "", goboRotation, 0, 255);
-  drawValueBox(startX + 360, rotSliderY + 10, goboRotation, null);
+  drawSlider(startX, rotSliderY, 350, "Gobo Rotation (CH12)", goboRotation, 0, 255);
+  drawValueBox(startX + 360, rotSliderY, goboRotation, null);
 }
 
 // ============================================
@@ -418,19 +409,13 @@ void drawBeamTab(int yPos) {
   int startY = yPos + TAB_CONTENT_OFFSET_Y;
 
   // Focus 슬라이더
-  fill(255);
-  textSize(14);
-  text("Focus (Hazy ← → Clear)", startX, startY);
-  drawSlider(startX, startY + 10, 350, "", focus, 0, 255);
-  drawValueBox(startX + 360, startY + 10, focus, null);
+  drawSlider(startX, startY, 350, "Focus (Hazy ← → Clear)", focus, 0, 255);
+  drawValueBox(startX + 360, startY, focus, null);
 
   // Zoom 슬라이더 (Focus 아래 + 마진)
   int zoomY = startY + 70;
-  fill(255);
-  textSize(14);
-  text("Zoom (Narrow ← → Wide)", startX, zoomY);
-  drawSlider(startX, zoomY + 10, 350, "", zoom, 0, 255);
-  drawValueBox(startX + 360, zoomY + 10, zoom, null);
+  drawSlider(startX, zoomY, 350, "Zoom (Narrow ← → Wide)", zoom, 0, 255);
+  drawValueBox(startX + 360, zoomY, zoom, null);
 
   // Prism 섹션 (Zoom 아래 + 마진)
   int prismY = zoomY + 70;
@@ -439,11 +424,8 @@ void drawBeamTab(int yPos) {
   // Prism Rotation (Prism 체크박스 아래)
   if (prismOn) {
     int rotY = prismY + 40;
-    fill(255);
-    textSize(14);
-    text("Prism Rotation", startX, rotY);
-    drawSlider(startX, rotY + 10, 350, "", prismRotation, 0, 255);
-    drawValueBox(startX + 360, rotY + 10, prismRotation, null);
+    drawSlider(startX, rotY, 350, "Prism Rotation", prismRotation, 0, 255);
+    drawValueBox(startX + 360, rotY, prismRotation, null);
   }
 }
 
@@ -464,11 +446,8 @@ void drawEffectsTab(int yPos) {
 
   // Auto Program (Frost 아래 + 마진)
   int autoY = startY + 50;
-  fill(255);
-  textSize(14);
-  text("Auto Program", startX, autoY);
-  drawSlider(startX, autoY + 10, 350, "", autoProgram, 0, 131);
-  drawValueBox(startX + 360, autoY + 10, autoProgram, null);
+  drawSlider(startX, autoY, 350, "Auto Program", autoProgram, 0, 131);
+  drawValueBox(startX + 360, autoY, autoProgram, null);
 }
 
 // ============================================

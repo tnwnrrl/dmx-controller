@@ -84,6 +84,7 @@ ArrayList<Keyframe> timeline = new ArrayList<Keyframe>();
 String videoPath = "video.mp4";  // data/ 폴더 기준
 float videoTime = 0;  // 현재 비디오 시간 (초)
 int selectedKeyframe = -1;  // 선택된 키프레임 인덱스 (-1 = 없음)
+boolean hasUnsavedChanges = false;  // 저장되지 않은 변경사항 플래그
 
 // ============================================
 // DMX 출력 모니터 변수
@@ -683,6 +684,9 @@ void drawSelectedKeyframeInfo(int tlY) {
   textAlign(LEFT, TOP);
   text("⚡ Selected Keyframe #" + (selectedKeyframe + 1) + " @ " + formatTime(kf.timestamp), 30, infoY);
 
+  // 저장 버튼 (헤더 오른쪽)
+  drawSaveButton(1200, infoY - 5);
+
   // 채널 값 표시 (3줄로 나눠서)
   fill(200, 220, 255);
   textSize(10);
@@ -711,6 +715,45 @@ void drawSelectedKeyframeInfo(int tlY) {
   text(line3, startX, infoY + 18 + lineHeight * 2);
 
   textAlign(LEFT, BASELINE);
+}
+
+// 저장 버튼
+void drawSaveButton(int x, int y) {
+  int btnW = 120;
+  int btnH = 30;
+
+  boolean hover = mouseX > x && mouseX < x + btnW && mouseY > y && mouseY < y + btnH;
+
+  // 배경색 (변경사항 유무에 따라)
+  if (hasUnsavedChanges) {
+    if (hover) {
+      fill(100, 180, 100);
+      stroke(150, 255, 150);
+    } else {
+      fill(80, 150, 80);
+      stroke(100, 200, 100);
+    }
+  } else {
+    // 저장할 것 없음
+    fill(60);
+    stroke(80);
+  }
+
+  strokeWeight(2);
+  rect(x, y, btnW, btnH, 3);
+
+  // 텍스트
+  if (hasUnsavedChanges) {
+    fill(255, 255, 200);
+  } else {
+    fill(150);
+  }
+  textSize(12);
+  textAlign(CENTER, CENTER);
+  String label = hasUnsavedChanges ? "💾 Save [S]" : "✓ Saved";
+  text(label, x + btnW/2, y + btnH/2);
+  textAlign(LEFT, BASELINE);
+  strokeWeight(1);
 }
 
 // 키프레임 추가/삭제 버튼
@@ -1604,10 +1647,11 @@ void updateDMXChannel(int channel, int value) {
   dmxChannels[channel - 1] = constrain(value, 0, 255);
   sendDMX(channel, dmxChannels[channel - 1]);
 
-  // 키프레임이 선택된 상태면 해당 키프레임 값도 실시간 업데이트
+  // 키프레임이 선택된 상태면 해당 키프레임 값도 업데이트 (저장은 버튼으로)
   if (selectedKeyframe >= 0 && selectedKeyframe < timeline.size()) {
     timeline.get(selectedKeyframe).dmxValues[channel - 1] = dmxChannels[channel - 1];
-    saveSequence("sequence.json");  // 자동 저장
+    hasUnsavedChanges = true;  // 변경사항 플래그 설정
+    println("✏️ 키프레임 #" + (selectedKeyframe + 1) + " 수정됨: CH" + channel + "=" + dmxChannels[channel - 1] + " (저장 필요)");
   }
 }
 
@@ -1662,6 +1706,16 @@ void keyPressed() {
         pauseVideo();
       } else {
         playVideo();
+      }
+      return;
+    }
+
+    // S 키: 변경사항 저장 (키프레임 선택 시에만)
+    if (key == 's' || key == 'S') {
+      if (selectedKeyframe >= 0 && selectedKeyframe < timeline.size() && hasUnsavedChanges) {
+        saveSequence("sequence.json");
+        hasUnsavedChanges = false;
+        println("💾 키프레임 변경사항 저장 완료");
       }
       return;
     }
@@ -2053,6 +2107,25 @@ boolean handleTimelineClick() {
   int previewX = 30;
   int previewW = 80;
 
+  // 저장 버튼 클릭 확인 (키프레임 선택 시에만 표시)
+  if (selectedKeyframe >= 0 && selectedKeyframe < timeline.size()) {
+    int infoY = tlY + 70;
+    int saveX = 1200;
+    int saveY = infoY - 5;
+    int saveW = 120;
+    int saveH = 30;
+
+    if (mouseX > saveX && mouseX < saveX + saveW &&
+        mouseY > saveY && mouseY < saveY + saveH) {
+      if (hasUnsavedChanges) {
+        saveSequence("sequence.json");
+        hasUnsavedChanges = false;
+        println("💾 키프레임 변경사항 저장 완료");
+      }
+      return true;
+    }
+  }
+
   // 재생 컨트롤 버튼 좌표
   int btnStartX = previewX + previewW + 20;
   int btnY = tlY + 10;
@@ -2195,8 +2268,9 @@ void addKeyframe() {
 
   println("✅ 키프레임 추가: #" + (insertPos + 1) + " @ " + formatTime(currentTime) + " (" + timeline.size() + " 개)");
 
-  // 자동 저장
+  // 즉시 저장
   saveSequence("sequence.json");
+  hasUnsavedChanges = false;
 }
 
 void deleteSelectedKeyframe() {
@@ -2213,8 +2287,9 @@ void deleteSelectedKeyframe() {
 
   println("   남은 키프레임: " + timeline.size() + " 개");
 
-  // 자동 저장
+  // 즉시 저장
   saveSequence("sequence.json");
+  hasUnsavedChanges = false;
 }
 
 // ============================================
@@ -2348,6 +2423,7 @@ void loadSequence(String filename) {
       timeline.add(kf);
     }
 
+    hasUnsavedChanges = false;  // 로드 후에는 저장된 상태
     println("📂 시퀀스 로드 완료: data/" + filename + " (" + timeline.size() + " 키프레임)");
   } catch (Exception e) {
     println("✗ 에러: 시퀀스 파일을 열 수 없습니다");

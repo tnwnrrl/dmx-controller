@@ -648,6 +648,11 @@ void drawTimelineArea() {
   // 타임라인 시크바
   drawTimelineSeekbar(300, tlY + 15, 980);
 
+  // 단축키 힌트
+  fill(150);
+  textSize(10);
+  text("[K]Add  [Del]Delete  [Space]Play  [S]Save  [L]Load", 1050, tlY + 55);
+
   // 키프레임 정보 및 컨트롤
   fill(200);
   textSize(11);
@@ -1603,6 +1608,18 @@ void keyPressed() {
       }
       return;
     }
+
+    // S 키: 시퀀스 저장
+    if (key == 's' || key == 'S') {
+      saveSequence("sequence.json");
+      return;
+    }
+
+    // L 키: 시퀀스 로드
+    if (key == 'l' || key == 'L') {
+      loadSequence("sequence.json");
+      return;
+    }
   }
 
   // 수동 CMD 입력 모드일 때
@@ -2215,4 +2232,63 @@ void interpolateKeyframes(Keyframe kf1, Keyframe kf2, float t) {
 
   // UI 변수 동기화
   syncUIFromDMX();
+}
+
+// ============================================
+// 시퀀스 저장/로드 (JSON)
+// ============================================
+void saveSequence(String filename) {
+  if (timeline.size() == 0) {
+    println("⚠️ 저장할 키프레임이 없습니다");
+    return;
+  }
+
+  JSONArray jsonTimeline = new JSONArray();
+
+  for (int i = 0; i < timeline.size(); i++) {
+    Keyframe kf = timeline.get(i);
+    JSONObject jsonKF = new JSONObject();
+
+    jsonKF.setFloat("timestamp", kf.timestamp);
+
+    JSONArray jsonValues = new JSONArray();
+    for (int ch = 0; ch < 18; ch++) {
+      jsonValues.setInt(ch, kf.dmxValues[ch]);
+    }
+    jsonKF.setJSONArray("dmxValues", jsonValues);
+
+    jsonTimeline.setJSONObject(i, jsonKF);
+  }
+
+  saveJSONArray(jsonTimeline, "data/" + filename);
+  println("💾 시퀀스 저장 완료: data/" + filename + " (" + timeline.size() + " 키프레임)");
+}
+
+void loadSequence(String filename) {
+  try {
+    JSONArray jsonTimeline = loadJSONArray("data/" + filename);
+
+    timeline.clear();
+    selectedKeyframe = -1;
+
+    for (int i = 0; i < jsonTimeline.size(); i++) {
+      JSONObject jsonKF = jsonTimeline.getJSONObject(i);
+      float timestamp = jsonKF.getFloat("timestamp");
+
+      JSONArray jsonValues = jsonKF.getJSONArray("dmxValues");
+      int[] dmxValues = new int[18];
+      for (int ch = 0; ch < 18; ch++) {
+        dmxValues[ch] = jsonValues.getInt(ch);
+      }
+
+      Keyframe kf = new Keyframe(timestamp, dmxValues);
+      timeline.add(kf);
+    }
+
+    println("📂 시퀀스 로드 완료: data/" + filename + " (" + timeline.size() + " 키프레임)");
+  } catch (Exception e) {
+    println("✗ 에러: 시퀀스 파일을 열 수 없습니다");
+    println("  경로: data/" + filename);
+    println("  원인: " + e.getMessage());
+  }
 }

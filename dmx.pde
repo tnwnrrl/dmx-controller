@@ -2053,7 +2053,9 @@ boolean handleTimelineClick() {
         float markerX = seekX + seekW * (kf.timestamp / duration);
         if (abs(mouseX - markerX) < 5) {
           selectedKeyframe = i;
-          println("🎯 키프레임 선택: #" + (i + 1) + " @ " + formatTime(kf.timestamp));
+          // 키프레임 값 즉시 적용
+          applyKeyframe(kf);
+          println("🎯 키프레임 선택 & 적용: #" + (i + 1) + " @ " + formatTime(kf.timestamp));
           return true;
         }
       }
@@ -2064,6 +2066,8 @@ boolean handleTimelineClick() {
     float newTime = clickPos * movie.duration();
     movie.jump(newTime);
     selectedKeyframe = -1;  // 선택 해제
+    // 이동한 시간의 키프레임 값 즉시 적용
+    updateDMXFromTimeline();
     println("⏩ 비디오 시간 이동: " + formatTime(newTime));
     return true;
   }

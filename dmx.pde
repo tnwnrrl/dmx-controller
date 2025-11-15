@@ -160,7 +160,7 @@ void setup() {
   printArray(Serial.list());
 
   try {
-    myPort = new Serial(this, "/dev/tty.usbmodem1201", 115200);
+    myPort = new Serial(this, "/dev/tty.usbmodem1101", 115200);
     println("✓ 시리얼 포트 연결 성공: /dev/tty.usbmodem1201");
   } catch (Exception e) {
     println("✗ 에러: 시리얼 포트를 열 수 없습니다");
@@ -1555,6 +1555,12 @@ void handleEffectsDrags(int yPos) {
 void updateDMXChannel(int channel, int value) {
   dmxChannels[channel - 1] = constrain(value, 0, 255);
   sendDMX(channel, dmxChannels[channel - 1]);
+
+  // 키프레임이 선택된 상태면 해당 키프레임 값도 실시간 업데이트
+  if (selectedKeyframe >= 0 && selectedKeyframe < timeline.size()) {
+    timeline.get(selectedKeyframe).dmxValues[channel - 1] = dmxChannels[channel - 1];
+    saveSequence("sequence.json");  // 자동 저장
+  }
 }
 
 void updateStrobeChannel() {

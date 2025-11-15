@@ -518,23 +518,23 @@ void drawDMXMonitor() {
 // 수동 CMD 입력
 // ============================================
 void drawManualInput() {
-  int inputX = 1000;
-  int inputY = DMX_MONITOR_Y + 95;
+  int inputX = 1400;
+  int inputY = DMX_MONITOR_Y + 15;
   int inputW = 350;
-  int inputH = 35;
+  int inputH = 30;
 
   // 레이블
-  fill(255, 200, 100);
-  textSize(12);
-  text("⌨️ Manual CMD:", inputX, inputY - 5);
+  fill(100, 200, 255);
+  textSize(11);
+  text("⌨️ Manual CMD:", inputX, inputY - 8);
 
   // 입력 박스 배경
   if (isManualMode) {
-    fill(60, 80, 60);  // 활성화 시 약간 밝게
+    fill(50, 70, 50);  // 활성화 시 약간 밝게
     stroke(100, 255, 100);
     strokeWeight(2);
   } else {
-    fill(40);
+    fill(35);
     stroke(80);
     strokeWeight(1);
   }
@@ -542,17 +542,19 @@ void drawManualInput() {
 
   // 입력 텍스트 표시
   fill(200, 255, 200);
-  textSize(14);
+  textSize(12);
   textAlign(LEFT, CENTER);
-  String displayText = isManualMode ? manualInput + "_" : "Click to enter CMD (e.g., CH5=200)";
-  text(displayText, inputX + 10, inputY + inputH/2);
+  String displayText = isManualMode ? manualInput + "_" : "CH5=200";
+  text(displayText, inputX + 8, inputY + inputH/2);
   textAlign(LEFT, BASELINE);
 
-  // 도움말
-  if (!isManualMode) {
-    fill(120);
+  // 플레이스홀더 힌트
+  if (!isManualMode && manualInput.length() == 0) {
+    fill(100);
     textSize(10);
-    text("Enter: Send  |  ESC: Cancel", inputX, inputY + inputH + 15);
+    textAlign(LEFT, CENTER);
+    text("(Click to type)", inputX + 80, inputY + inputH/2);
+    textAlign(LEFT, BASELINE);
   }
 }
 
@@ -827,20 +829,20 @@ void drawGoboButton(int x, int y, int size, int num, boolean selected) {
 // 마우스 클릭 이벤트
 // ============================================
 void mousePressed() {
-  // 입력 모드일 때는 클릭 무시
-  if (isInputMode || isManualMode) {
-    return;
-  }
-
-  // 수동 CMD 입력 박스 클릭 감지
-  int inputX = 1000;
-  int inputY = DMX_MONITOR_Y + 95;
+  // 수동 CMD 입력 박스 클릭 감지 (우선 체크)
+  int inputX = 1400;
+  int inputY = DMX_MONITOR_Y + 15;
   int inputW = 350;
-  int inputH = 35;
+  int inputH = 30;
   if (mouseX > inputX && mouseX < inputX + inputW &&
       mouseY > inputY && mouseY < inputY + inputH) {
     isManualMode = true;
     manualInput = "";
+    return;
+  }
+
+  // 입력 모드일 때는 다른 클릭 무시
+  if (isInputMode || isManualMode) {
     return;
   }
 

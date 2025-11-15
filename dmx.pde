@@ -154,7 +154,7 @@ int[] defaultChannelValues = {
 };
 
 void setup() {
-  size(1400, 700);  // Processing size()는 리터럴 값만 허용
+  size(1400, 800);  // Processing size()는 리터럴 값만 허용 (타임라인 확장으로 높이 증가)
 
   // 시리얼 포트 연결
   println("사용 가능한 시리얼 포트:");

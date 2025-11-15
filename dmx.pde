@@ -2207,18 +2207,22 @@ void updateDMXFromTimeline() {
   }
 }
 
-// 키프레임 적용
+// 키프레임 적용 (변경된 채널만 전송)
 void applyKeyframe(Keyframe kf) {
   for (int i = 0; i < 18; i++) {
-    dmxChannels[i] = kf.dmxValues[i];
-    sendDMX(i + 1, dmxChannels[i]);
+    int newValue = kf.dmxValues[i];
+    // 값이 변경된 경우만 전송
+    if (dmxChannels[i] != newValue) {
+      dmxChannels[i] = newValue;
+      sendDMX(i + 1, newValue);
+    }
   }
 
   // UI 변수 동기화
   syncUIFromDMX();
 }
 
-// 두 키프레임 사이 보간
+// 두 키프레임 사이 보간 (변경된 채널만 전송)
 void interpolateKeyframes(Keyframe kf1, Keyframe kf2, float t) {
   t = constrain(t, 0, 1);  // 0~1 범위 제한
 
@@ -2226,8 +2230,12 @@ void interpolateKeyframes(Keyframe kf1, Keyframe kf2, float t) {
     int val1 = kf1.dmxValues[i];
     int val2 = kf2.dmxValues[i];
     int interpolated = int(lerp(val1, val2, t));
-    dmxChannels[i] = interpolated;
-    sendDMX(i + 1, interpolated);
+
+    // 값이 변경된 경우만 전송
+    if (dmxChannels[i] != interpolated) {
+      dmxChannels[i] = interpolated;
+      sendDMX(i + 1, interpolated);
+    }
   }
 
   // UI 변수 동기화

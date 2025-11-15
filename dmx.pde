@@ -1880,10 +1880,10 @@ void sendManualCommand(String input) {
 void resetAllChannels() {
   println("🔄 모든 채널 기본값으로 초기화 시작...");
 
-  // 각 채널을 기본값으로 설정
+  // 각 채널을 기본값으로 설정 (updateDMXChannel 사용으로 키프레임도 업데이트)
   for (int ch = 1; ch <= 18; ch++) {
     int defaultValue = defaultChannelValues[ch - 1];
-    sendDMX(ch, defaultValue);
+    updateDMXChannel(ch, defaultValue);  // sendDMX 대신 updateDMXChannel 사용
     delay(5);  // 시리얼 오버플로우 방지
   }
 

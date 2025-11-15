@@ -178,6 +178,9 @@ void setup() {
 
   // 비디오 로드
   loadVideo();
+
+  // 시퀀스 자동 로드
+  loadSequence("sequence.json");
 }
 
 void draw() {
@@ -651,7 +654,7 @@ void drawTimelineArea() {
   // 단축키 힌트
   fill(150);
   textSize(10);
-  text("[K]Add  [Del]Delete  [Space]Play  [S]Save  [L]Load", 1050, tlY + 55);
+  text("[K]Add  [Del]Delete  [Space]Play/Pause  (Auto-saved)", 1050, tlY + 55);
 
   // 키프레임 정보 및 컨트롤
   fill(200);
@@ -1608,18 +1611,6 @@ void keyPressed() {
       }
       return;
     }
-
-    // S 키: 시퀀스 저장
-    if (key == 's' || key == 'S') {
-      saveSequence("sequence.json");
-      return;
-    }
-
-    // L 키: 시퀀스 로드
-    if (key == 'l' || key == 'L') {
-      loadSequence("sequence.json");
-      return;
-    }
   }
 
   // 수동 CMD 입력 모드일 때
@@ -2149,6 +2140,9 @@ void addKeyframe() {
   selectedKeyframe = insertPos;
 
   println("✅ 키프레임 추가: #" + (insertPos + 1) + " @ " + formatTime(currentTime) + " (" + timeline.size() + " 개)");
+
+  // 자동 저장
+  saveSequence("sequence.json");
 }
 
 void deleteSelectedKeyframe() {
@@ -2164,6 +2158,9 @@ void deleteSelectedKeyframe() {
   selectedKeyframe = -1;  // 선택 해제
 
   println("   남은 키프레임: " + timeline.size() + " 개");
+
+  // 자동 저장
+  saveSequence("sequence.json");
 }
 
 // ============================================

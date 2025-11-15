@@ -114,6 +114,12 @@ String[] channelNames = {
   "Auto Program"      // CH18
 };
 
+// ============================================
+// 수동 CMD 입력 모드 변수
+// ============================================
+boolean isManualMode = false;
+String manualInput = "";
+
 void setup() {
   size(1800, 750);  // Processing size()는 리터럴 값만 허용
 
@@ -503,6 +509,51 @@ void drawDMXMonitor() {
       text("Raw: " + cmd.getRawCommand(), 370, yPos);
     }
   }
+
+  // 수동 CMD 입력 영역 (모니터 오른쪽 하단)
+  drawManualInput();
+}
+
+// ============================================
+// 수동 CMD 입력
+// ============================================
+void drawManualInput() {
+  int inputX = 1000;
+  int inputY = DMX_MONITOR_Y + 95;
+  int inputW = 350;
+  int inputH = 35;
+
+  // 레이블
+  fill(255, 200, 100);
+  textSize(12);
+  text("⌨️ Manual CMD:", inputX, inputY - 5);
+
+  // 입력 박스 배경
+  if (isManualMode) {
+    fill(60, 80, 60);  // 활성화 시 약간 밝게
+    stroke(100, 255, 100);
+    strokeWeight(2);
+  } else {
+    fill(40);
+    stroke(80);
+    strokeWeight(1);
+  }
+  rect(inputX, inputY, inputW, inputH, 3);
+
+  // 입력 텍스트 표시
+  fill(200, 255, 200);
+  textSize(14);
+  textAlign(LEFT, CENTER);
+  String displayText = isManualMode ? manualInput + "_" : "Click to enter CMD (e.g., CH5=200)";
+  text(displayText, inputX + 10, inputY + inputH/2);
+  textAlign(LEFT, BASELINE);
+
+  // 도움말
+  if (!isManualMode) {
+    fill(120);
+    textSize(10);
+    text("Enter: Send  |  ESC: Cancel", inputX, inputY + inputH + 15);
+  }
 }
 
 // ============================================
@@ -777,7 +828,19 @@ void drawGoboButton(int x, int y, int size, int num, boolean selected) {
 // ============================================
 void mousePressed() {
   // 입력 모드일 때는 클릭 무시
-  if (isInputMode) {
+  if (isInputMode || isManualMode) {
+    return;
+  }
+
+  // 수동 CMD 입력 박스 클릭 감지
+  int inputX = 1000;
+  int inputY = DMX_MONITOR_Y + 95;
+  int inputW = 350;
+  int inputH = 35;
+  if (mouseX > inputX && mouseX < inputX + inputW &&
+      mouseY > inputY && mouseY < inputY + inputH) {
+    isManualMode = true;
+    manualInput = "";
     return;
   }
 
@@ -1390,6 +1453,32 @@ void updateGoboChannel(int channel, int goboNum) {
 // 키보드 이벤트 (프리셋 + 숫자 입력)
 // ============================================
 void keyPressed() {
+  // 수동 CMD 입력 모드일 때
+  if (isManualMode) {
+    if (key == ENTER || key == RETURN) {
+      // Enter: CMD 전송
+      if (manualInput.length() > 0) {
+        sendManualCommand(manualInput);
+      }
+      isManualMode = false;
+      manualInput = "";
+    } else if (key == ESC) {
+      // ESC: 취소
+      isManualMode = false;
+      manualInput = "";
+      key = 0;  // ESC 기본 동작 방지
+    } else if (key == BACKSPACE || key == DELETE) {
+      // 백스페이스
+      if (manualInput.length() > 0) {
+        manualInput = manualInput.substring(0, manualInput.length() - 1);
+      }
+    } else if (key >= 32 && key <= 126) {
+      // 출력 가능한 ASCII 문자만 허용
+      manualInput += key;
+    }
+    return;
+  }
+
   // 숫자 입력 모드일 때
   if (isInputMode) {
     if (key >= '0' && key <= '9') {
@@ -1496,6 +1585,46 @@ void sendDMX(int channel, int value) {
   // 최대 크기 초과시 오래된 것 제거
   while (commandHistory.size() > maxHistorySize) {
     commandHistory.remove(0);
+  }
+}
+
+// 수동 CMD 전송 (파싱 및 검증)
+void sendManualCommand(String input) {
+  input = input.trim().toUpperCase();
+
+  // "CH{숫자}={숫자}" 형식 파싱
+  if (input.startsWith("CH") && input.contains("=")) {
+    try {
+      // CH 제거
+      String rest = input.substring(2);
+      String[] parts = rest.split("=");
+
+      if (parts.length == 2) {
+        int channel = int(parts[0].trim());
+        int value = int(parts[1].trim());
+
+        // 유효성 검사
+        if (channel >= 1 && channel <= 18 && value >= 0 && value <= 255) {
+          sendDMX(channel, value);
+          println("✓ Manual CMD 성공: CH" + channel + "=" + value);
+        } else {
+          println("✗ 에러: 유효하지 않은 범위 (채널: 1-18, 값: 0-255)");
+        }
+      } else {
+        println("✗ 에러: 잘못된 형식 (예: CH5=200)");
+      }
+    } catch (Exception e) {
+      println("✗ 에러: 파싱 실패 - " + e.getMessage());
+    }
+  } else {
+    // Raw 명령어로 직접 전송 (검증 없이)
+    String cmd = input + "\n";
+    if (myPort != null) {
+      myPort.write(cmd);
+      println("Raw CMD 전송: " + input);
+    } else {
+      println("경고: 시리얼 연결 없음 - " + input);
+    }
   }
 }
 

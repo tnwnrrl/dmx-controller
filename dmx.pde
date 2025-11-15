@@ -183,6 +183,11 @@ void setup() {
 void draw() {
   background(25);
 
+  // 타임라인 동기화 (비디오 재생 중일 때)
+  if (isPlaying && movie != null) {
+    updateDMXFromTimeline();
+  }
+
   // 타이틀
   fill(255);
   textSize(20);
@@ -197,7 +202,7 @@ void draw() {
   // DMX 출력 모니터
   drawDMXMonitor();
 
-  // 하단 타임라인 영역 (Phase 3에서 구현)
+  // 하단 타임라인 영역 (Phase 3 - Video Sequencer)
   drawTimelineArea();
 
   // 숫자 입력 모드 UI (최상위 오버레이)
@@ -643,10 +648,64 @@ void drawTimelineArea() {
   // 타임라인 시크바
   drawTimelineSeekbar(300, tlY + 15, 980);
 
-  // 키프레임 정보
+  // 키프레임 정보 및 컨트롤
   fill(200);
   textSize(11);
-  text("Keyframes: " + timeline.size(), 1290, tlY + 25);
+  text("Keyframes: " + timeline.size(), 1290, tlY + 20);
+
+  // 키프레임 컨트롤 버튼
+  drawKeyframeControls(1290, tlY + 35);
+}
+
+// 키프레임 추가/삭제 버튼
+void drawKeyframeControls(int x, int y) {
+  int btnW = 35;
+  int btnH = 20;
+
+  // Add Keyframe 버튼
+  boolean addHover = mouseX > x && mouseX < x + btnW && mouseY > y && mouseY < y + btnH;
+  if (addHover) {
+    fill(80, 120, 80);
+    stroke(150, 255, 150);
+  } else {
+    fill(60, 100, 60);
+    stroke(100, 200, 100);
+  }
+  strokeWeight(1);
+  rect(x, y, btnW, btnH, 2);
+  fill(200, 255, 200);
+  textSize(10);
+  textAlign(CENTER, CENTER);
+  text("+ K", x + btnW/2, y + btnH/2);
+  textAlign(LEFT, BASELINE);
+
+  // Delete Keyframe 버튼
+  int delX = x + btnW + 5;
+  boolean delHover = mouseX > delX && mouseX < delX + btnW && mouseY > y && mouseY < y + btnH;
+  boolean hasSelection = selectedKeyframe >= 0 && selectedKeyframe < timeline.size();
+
+  if (!hasSelection) {
+    fill(40);
+    stroke(60);
+  } else if (delHover) {
+    fill(120, 60, 60);
+    stroke(255, 150, 150);
+  } else {
+    fill(100, 40, 40);
+    stroke(200, 100, 100);
+  }
+  strokeWeight(1);
+  rect(delX, y, btnW, btnH, 2);
+
+  if (hasSelection) {
+    fill(255, 200, 200);
+  } else {
+    fill(100);
+  }
+  textSize(10);
+  textAlign(CENTER, CENTER);
+  text("🗑 " + (selectedKeyframe + 1), delX + btnW/2, y + btnH/2);
+  textAlign(LEFT, BASELINE);
 }
 
 // ============================================
@@ -1521,6 +1580,31 @@ void updateGoboChannel(int channel, int goboNum) {
 // 키보드 이벤트 (프리셋 + 숫자 입력)
 // ============================================
 void keyPressed() {
+  // 타임라인 단축키 (최우선)
+  if (!isManualMode && !isInputMode) {
+    // K 키: 키프레임 추가
+    if (key == 'k' || key == 'K') {
+      addKeyframe();
+      return;
+    }
+
+    // Delete/Backspace: 선택된 키프레임 삭제
+    if (key == DELETE || key == BACKSPACE) {
+      deleteSelectedKeyframe();
+      return;
+    }
+
+    // 스페이스바: 재생/일시정지 토글
+    if (key == ' ') {
+      if (isPlaying) {
+        pauseVideo();
+      } else {
+        playVideo();
+      }
+      return;
+    }
+  }
+
   // 수동 CMD 입력 모드일 때
   if (isManualMode) {
     // CODED 키가 아닐 때만 처리
@@ -1937,17 +2021,52 @@ boolean handleTimelineClick() {
     return true;
   }
 
-  // 시크바 클릭 (시간 점프)
+  // 시크바 클릭 (시간 점프 + 키프레임 선택)
   int seekX = 300;
   int seekY = tlY + 15;
   int seekW = 980;
   int seekH = 30;
   if (mouseX > seekX && mouseX < seekX + seekW &&
-      mouseY > seekY && mouseY < seekY + seekH) {
+      mouseY > seekY - 10 && mouseY < seekY + seekH) {
+    // 키프레임 마커 클릭 확인 (위쪽 삼각형 영역)
+    if (mouseY < seekY) {
+      float duration = movie.duration();
+      for (int i = 0; i < timeline.size(); i++) {
+        Keyframe kf = timeline.get(i);
+        float markerX = seekX + seekW * (kf.timestamp / duration);
+        if (abs(mouseX - markerX) < 5) {
+          selectedKeyframe = i;
+          println("🎯 키프레임 선택: #" + (i + 1) + " @ " + formatTime(kf.timestamp));
+          return true;
+        }
+      }
+    }
+
+    // 시크바 클릭 (시간 점프)
     float clickPos = (mouseX - seekX) / float(seekW);
     float newTime = clickPos * movie.duration();
     movie.jump(newTime);
+    selectedKeyframe = -1;  // 선택 해제
     println("⏩ 비디오 시간 이동: " + formatTime(newTime));
+    return true;
+  }
+
+  // Add Keyframe 버튼
+  int kfX = 1290;
+  int kfY = tlY + 35;
+  int kfW = 35;
+  int kfH = 20;
+  if (mouseX > kfX && mouseX < kfX + kfW &&
+      mouseY > kfY && mouseY < kfY + kfH) {
+    addKeyframe();
+    return true;
+  }
+
+  // Delete Keyframe 버튼
+  int delX = kfX + kfW + 5;
+  if (mouseX > delX && mouseX < delX + kfW &&
+      mouseY > kfY && mouseY < kfY + kfH) {
+    deleteSelectedKeyframe();
     return true;
   }
 
@@ -1978,4 +2097,122 @@ void stopVideo() {
   isPlaying = false;
   videoTime = 0;
   println("■ 비디오 정지");
+}
+
+// ============================================
+// 키프레임 추가/삭제
+// ============================================
+void addKeyframe() {
+  if (movie == null) return;
+
+  float currentTime = movie.time();
+
+  // 현재 DMX 채널 값을 배열로 복사
+  int[] values = new int[18];
+  for (int i = 0; i < 18; i++) {
+    values[i] = dmxChannels[i];
+  }
+
+  // 새 키프레임 생성
+  Keyframe newKF = new Keyframe(currentTime, values);
+
+  // 시간 순서대로 삽입
+  int insertPos = 0;
+  for (int i = 0; i < timeline.size(); i++) {
+    if (timeline.get(i).timestamp < currentTime) {
+      insertPos = i + 1;
+    }
+  }
+
+  timeline.add(insertPos, newKF);
+  selectedKeyframe = insertPos;
+
+  println("✅ 키프레임 추가: #" + (insertPos + 1) + " @ " + formatTime(currentTime) + " (" + timeline.size() + " 개)");
+}
+
+void deleteSelectedKeyframe() {
+  if (selectedKeyframe < 0 || selectedKeyframe >= timeline.size()) {
+    println("⚠️ 삭제할 키프레임이 선택되지 않았습니다");
+    return;
+  }
+
+  Keyframe kf = timeline.get(selectedKeyframe);
+  println("🗑️ 키프레임 삭제: #" + (selectedKeyframe + 1) + " @ " + formatTime(kf.timestamp));
+
+  timeline.remove(selectedKeyframe);
+  selectedKeyframe = -1;  // 선택 해제
+
+  println("   남은 키프레임: " + timeline.size() + " 개");
+}
+
+// ============================================
+// 타임라인 동기화 (키프레임 보간)
+// ============================================
+void updateDMXFromTimeline() {
+  if (timeline.size() == 0 || movie == null) return;
+
+  float currentTime = movie.time();
+
+  // 정확히 일치하는 키프레임 찾기
+  for (int i = 0; i < timeline.size(); i++) {
+    Keyframe kf = timeline.get(i);
+    if (abs(kf.timestamp - currentTime) < 0.1) {
+      applyKeyframe(kf);
+      return;
+    }
+  }
+
+  // 현재 시간 사이의 두 키프레임 찾기 (보간용)
+  Keyframe prevKF = null;
+  Keyframe nextKF = null;
+
+  for (int i = 0; i < timeline.size(); i++) {
+    Keyframe kf = timeline.get(i);
+    if (kf.timestamp <= currentTime) {
+      prevKF = kf;
+    } else if (kf.timestamp > currentTime && nextKF == null) {
+      nextKF = kf;
+      break;
+    }
+  }
+
+  // 보간 처리
+  if (prevKF != null && nextKF != null) {
+    // 선형 보간
+    float t = (currentTime - prevKF.timestamp) / (nextKF.timestamp - prevKF.timestamp);
+    interpolateKeyframes(prevKF, nextKF, t);
+  } else if (prevKF != null) {
+    // 마지막 키프레임 유지
+    applyKeyframe(prevKF);
+  } else if (nextKF != null) {
+    // 첫 키프레임 전에는 첫 키프레임 값 사용
+    applyKeyframe(nextKF);
+  }
+}
+
+// 키프레임 적용
+void applyKeyframe(Keyframe kf) {
+  for (int i = 0; i < 18; i++) {
+    dmxChannels[i] = kf.dmxValues[i];
+    sendDMX(i + 1, dmxChannels[i]);
+  }
+
+  // UI 변수 동기화
+  syncUIFromDMX();
+}
+
+// 두 키프레임 사이 보간
+void interpolateKeyframes(Keyframe kf1, Keyframe kf2, float t) {
+  t = constrain(t, 0, 1);  // 0~1 범위 제한
+
+  for (int i = 0; i < 18; i++) {
+    int val1 = kf1.dmxValues[i];
+    int val2 = kf2.dmxValues[i];
+    int interpolated = int(lerp(val1, val2, t));
+    dmxChannels[i] = interpolated;
+    sendDMX(i + 1, interpolated);
+  }
+
+  // UI 변수 동기화
+  syncUIFromDMX();
 }

@@ -497,6 +497,9 @@ void drawDMXMonitor() {
 
   // 수동 CMD 입력 영역 (모니터 오른쪽 하단)
   drawManualInput();
+
+  // RESET ALL 버튼
+  drawResetButton();
 }
 
 // ============================================
@@ -541,6 +544,38 @@ void drawManualInput() {
     text("(Click to type)", inputX + 80, inputY + inputH/2);
     textAlign(LEFT, BASELINE);
   }
+}
+
+// ============================================
+// RESET ALL 버튼
+// ============================================
+void drawResetButton() {
+  int btnX = 1000;
+  int btnY = DMX_MONITOR_Y + 55;
+  int btnW = 120;
+  int btnH = 30;
+
+  // 버튼 배경 (호버 효과)
+  boolean isHover = mouseX > btnX && mouseX < btnX + btnW &&
+                    mouseY > btnY && mouseY < btnY + btnH;
+
+  if (isHover) {
+    fill(80, 40, 40);  // 호버 시 약간 밝은 빨강
+    stroke(255, 100, 100);
+    strokeWeight(2);
+  } else {
+    fill(60, 30, 30);
+    stroke(150, 80, 80);
+    strokeWeight(1);
+  }
+  rect(btnX, btnY, btnW, btnH, 3);
+
+  // 버튼 텍스트
+  fill(255, 150, 150);
+  textSize(11);
+  textAlign(CENTER, CENTER);
+  text("🔄 RESET ALL", btnX + btnW/2, btnY + btnH/2);
+  textAlign(LEFT, BASELINE);
 }
 
 // ============================================
@@ -797,6 +832,17 @@ void mousePressed() {
       mouseY > inputY && mouseY < inputY + inputH) {
     isManualMode = true;
     manualInput = "";
+    return;
+  }
+
+  // RESET ALL 버튼 클릭 감지
+  int btnX = 1000;
+  int btnY = DMX_MONITOR_Y + 55;
+  int btnW = 120;
+  int btnH = 30;
+  if (mouseX > btnX && mouseX < btnX + btnW &&
+      mouseY > btnY && mouseY < btnY + btnH) {
+    resetAllChannels();
     return;
   }
 
@@ -1565,6 +1611,20 @@ void sendManualCommand(String input) {
       println("경고: 시리얼 연결 없음 - " + input);
     }
   }
+}
+
+// ============================================
+// 모든 채널 초기화 (0으로 설정)
+// ============================================
+void resetAllChannels() {
+  println("🔄 모든 채널 초기화 시작...");
+
+  for (int ch = 1; ch <= 18; ch++) {
+    sendDMX(ch, 0);
+    delay(5);  // 시리얼 오버플로우 방지
+  }
+
+  println("✓ 모든 채널이 0으로 초기화되었습니다");
 }
 
 // ============================================

@@ -1416,12 +1416,9 @@ void updateGoboChannel(int channel, int goboNum) {
 void keyPressed() {
   // 수동 CMD 입력 모드일 때
   if (isManualMode) {
-    println("🔍 [DEBUG] keyPressed - isManualMode=true, key='" + key + "', keyCode=" + keyCode + ", key==CODED:" + (key == CODED));
-
     // CODED 키가 아닐 때만 처리
     if (key != CODED) {
       if (key == ENTER || key == RETURN || key == 10) {
-        println("✓ [DEBUG] ENTER 감지");
         // Enter: CMD 전송
         if (manualInput.length() > 0) {
           sendManualCommand(manualInput);
@@ -1429,26 +1426,19 @@ void keyPressed() {
         isManualMode = false;
         manualInput = "";
       } else if (key == ESC) {
-        println("✓ [DEBUG] ESC 감지");
         // ESC: 취소
         isManualMode = false;
         manualInput = "";
         key = 0;  // ESC 기본 동작 방지
       } else if (key == BACKSPACE || key == DELETE || key == 8 || key == 127) {
-        println("✓ [DEBUG] BACKSPACE 감지");
         // 백스페이스
         if (manualInput.length() > 0) {
           manualInput = manualInput.substring(0, manualInput.length() - 1);
         }
       } else if (key >= 32 && key <= 126) {
-        println("✓ [DEBUG] 문자 추가: '" + key + "' (ASCII " + int(key) + ")");
-        // 출력 가능한 ASCII 문자만 허용
+        // 출력 가능한 ASCII 문자만 허용 (영문, 숫자, 기호)
         manualInput += key;
-      } else {
-        println("⚠️ [DEBUG] 처리되지 않은 키: '" + key + "' (ASCII " + int(key) + ")");
       }
-    } else {
-      println("⚠️ [DEBUG] CODED 키 무시됨");
     }
     return;
   }

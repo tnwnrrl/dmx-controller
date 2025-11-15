@@ -2293,48 +2293,30 @@ void deleteSelectedKeyframe() {
 }
 
 // ============================================
-// 타임라인 동기화 (키프레임 보간)
+// 타임라인 동기화 (키프레임 값 유지 - 보간 없음)
 // ============================================
 void updateDMXFromTimeline() {
   if (timeline.size() == 0 || movie == null) return;
 
   float currentTime = movie.time();
 
-  // 정확히 일치하는 키프레임 찾기
-  for (int i = 0; i < timeline.size(); i++) {
-    Keyframe kf = timeline.get(i);
-    if (abs(kf.timestamp - currentTime) < 0.1) {
-      applyKeyframe(kf);
-      return;
-    }
-  }
-
-  // 현재 시간 사이의 두 키프레임 찾기 (보간용)
-  Keyframe prevKF = null;
-  Keyframe nextKF = null;
+  // 현재 시간 이전의 가장 가까운 키프레임 찾기
+  Keyframe activeKF = null;
 
   for (int i = 0; i < timeline.size(); i++) {
     Keyframe kf = timeline.get(i);
     if (kf.timestamp <= currentTime) {
-      prevKF = kf;
-    } else if (kf.timestamp > currentTime && nextKF == null) {
-      nextKF = kf;
-      break;
+      activeKF = kf;  // 현재 시간 이전 키프레임 중 가장 늦은 것
+    } else {
+      break;  // 현재 시간 이후 키프레임은 무시
     }
   }
 
-  // 보간 처리
-  if (prevKF != null && nextKF != null) {
-    // 선형 보간
-    float t = (currentTime - prevKF.timestamp) / (nextKF.timestamp - prevKF.timestamp);
-    interpolateKeyframes(prevKF, nextKF, t);
-  } else if (prevKF != null) {
-    // 마지막 키프레임 유지
-    applyKeyframe(prevKF);
-  } else if (nextKF != null) {
-    // 첫 키프레임 전에는 첫 키프레임 값 사용
-    applyKeyframe(nextKF);
+  // 활성 키프레임 적용 (해당 키프레임 값을 다음 키프레임까지 유지)
+  if (activeKF != null) {
+    applyKeyframe(activeKF);
   }
+  // activeKF가 null이면 (첫 키프레임 이전) 아무것도 안 함
 }
 
 // 키프레임 적용 (변경된 채널만 전송)

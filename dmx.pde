@@ -113,6 +113,30 @@ String[] channelNames = {
 boolean isManualMode = false;
 String manualInput = "";
 
+// ============================================
+// 채널 기본값 (초기화 시 사용)
+// ============================================
+int[] defaultChannelValues = {
+  127,  // CH1: Pan
+  0,    // CH2: Pan Fine
+  127,  // CH3: Tilt
+  0,    // CH4: Tilt Fine
+  128,  // CH5: XY Speed
+  0,    // CH6: Dimmer
+  0,    // CH7: Strobe
+  0,    // CH8: Color
+  0,    // CH9: Color Effect
+  0,    // CH10: Static Gobo
+  0,    // CH11: Rotation Gobo
+  0,    // CH12: Gobo Rotation
+  128,  // CH13: Focus
+  128,  // CH14: Zoom
+  0,    // CH15: Prism
+  0,    // CH16: Prism Rotation
+  0,    // CH17: Frost
+  0     // CH18: Auto Program
+};
+
 void setup() {
   size(1400, 700);  // Processing size()는 리터럴 값만 허용
 
@@ -1614,17 +1638,39 @@ void sendManualCommand(String input) {
 }
 
 // ============================================
-// 모든 채널 초기화 (0으로 설정)
+// 모든 채널 초기화 (기본값으로 설정)
 // ============================================
 void resetAllChannels() {
-  println("🔄 모든 채널 초기화 시작...");
+  println("🔄 모든 채널 기본값으로 초기화 시작...");
 
+  // 각 채널을 기본값으로 설정
   for (int ch = 1; ch <= 18; ch++) {
-    sendDMX(ch, 0);
+    int defaultValue = defaultChannelValues[ch - 1];
+    sendDMX(ch, defaultValue);
     delay(5);  // 시리얼 오버플로우 방지
   }
 
-  println("✓ 모든 채널이 0으로 초기화되었습니다");
+  // UI 변수들도 기본값으로 재설정
+  panValue = 127;
+  tiltValue = 127;
+  xySpeed = 128;
+  dimmer = 0;
+  strobeMode = 0;
+  strobeSpeed = 128;
+  colorMode = 0;
+  colorValue = 0;
+  colorEffect = 0;
+  staticGobo = 0;
+  rotationGobo = 0;
+  goboRotation = 0;
+  focus = 128;
+  zoom = 128;
+  prismOn = false;
+  prismRotation = 0;
+  frostOn = false;
+  autoProgram = 0;
+
+  println("✓ 모든 채널이 기본값으로 초기화되었습니다");
 }
 
 // ============================================

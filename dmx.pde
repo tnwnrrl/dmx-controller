@@ -115,7 +115,7 @@ String[] channelNames = {
 };
 
 void setup() {
-  size(WINDOW_WIDTH, WINDOW_HEIGHT);
+  size(1800, 750);  // Processing size()는 리터럴 값만 허용
 
   // 시리얼 포트 연결
   println("사용 가능한 시리얼 포트:");

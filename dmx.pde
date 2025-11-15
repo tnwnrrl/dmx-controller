@@ -5,13 +5,23 @@ Serial myPort;
 // ============================================
 // 레이아웃 상수
 // ============================================
-final int WINDOW_WIDTH = 1400;
-final int WINDOW_HEIGHT = 700;
 final int TAB_CONTENT_X = 50;
 final int TAB_CONTENT_OFFSET_Y = 60;
 final int DMX_MONITOR_Y = 480;
 final int DMX_MONITOR_HEIGHT = 140;
 final int TIMELINE_Y = 630;
+
+// Manual CMD Input 위치
+final int MANUAL_INPUT_X = 1000;
+final int MANUAL_INPUT_Y_OFFSET = 15;  // DMX_MONITOR_Y 기준
+final int MANUAL_INPUT_W = 350;
+final int MANUAL_INPUT_H = 30;
+
+// Reset Button 위치
+final int RESET_BTN_X = 1000;
+final int RESET_BTN_Y_OFFSET = 55;  // DMX_MONITOR_Y 기준
+final int RESET_BTN_W = 120;
+final int RESET_BTN_H = 30;
 
 // ============================================
 // DMX 채널 데이터 (18채널)
@@ -530,10 +540,10 @@ void drawDMXMonitor() {
 // 수동 CMD 입력
 // ============================================
 void drawManualInput() {
-  int inputX = 1000;
-  int inputY = DMX_MONITOR_Y + 15;
-  int inputW = 350;
-  int inputH = 30;
+  int inputX = MANUAL_INPUT_X;
+  int inputY = DMX_MONITOR_Y + MANUAL_INPUT_Y_OFFSET;
+  int inputW = MANUAL_INPUT_W;
+  int inputH = MANUAL_INPUT_H;
 
   // 레이블
   fill(100, 200, 255);
@@ -574,10 +584,10 @@ void drawManualInput() {
 // RESET ALL 버튼
 // ============================================
 void drawResetButton() {
-  int btnX = 1000;
-  int btnY = DMX_MONITOR_Y + 55;
-  int btnW = 120;
-  int btnH = 30;
+  int btnX = RESET_BTN_X;
+  int btnY = DMX_MONITOR_Y + RESET_BTN_Y_OFFSET;
+  int btnW = RESET_BTN_W;
+  int btnH = RESET_BTN_H;
 
   // 버튼 배경 (호버 효과)
   boolean isHover = mouseX > btnX && mouseX < btnX + btnW &&
@@ -848,10 +858,10 @@ void drawGoboButton(int x, int y, int size, int num, boolean selected) {
 // ============================================
 void mousePressed() {
   // 수동 CMD 입력 박스 클릭 감지 (우선 체크)
-  int inputX = 1000;
-  int inputY = DMX_MONITOR_Y + 15;
-  int inputW = 350;
-  int inputH = 30;
+  int inputX = MANUAL_INPUT_X;
+  int inputY = DMX_MONITOR_Y + MANUAL_INPUT_Y_OFFSET;
+  int inputW = MANUAL_INPUT_W;
+  int inputH = MANUAL_INPUT_H;
   if (mouseX > inputX && mouseX < inputX + inputW &&
       mouseY > inputY && mouseY < inputY + inputH) {
     isManualMode = true;
@@ -860,10 +870,10 @@ void mousePressed() {
   }
 
   // RESET ALL 버튼 클릭 감지
-  int btnX = 1000;
-  int btnY = DMX_MONITOR_Y + 55;
-  int btnW = 120;
-  int btnH = 30;
+  int btnX = RESET_BTN_X;
+  int btnY = DMX_MONITOR_Y + RESET_BTN_Y_OFFSET;
+  int btnW = RESET_BTN_W;
+  int btnH = RESET_BTN_H;
   if (mouseX > btnX && mouseX < btnX + btnW &&
       mouseY > btnY && mouseY < btnY + btnH) {
     resetAllChannels();

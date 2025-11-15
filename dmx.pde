@@ -426,7 +426,7 @@ void drawEffectsTab(int yPos) {
 // DMX 출력 모니터
 // ============================================
 void drawDMXMonitor() {
-  int monitorY = 430;
+  int monitorY = 480;
   int monitorHeight = 140;
 
   // 배경
@@ -485,7 +485,7 @@ void drawDMXMonitor() {
 // 타임라인 영역 (Phase 3에서 구현)
 // ============================================
 void drawTimelineArea() {
-  int tlY = 580;
+  int tlY = 630;
 
   fill(50);
   stroke(100);
@@ -500,7 +500,7 @@ void drawTimelineArea() {
 // 프리셋 버튼 영역
 // ============================================
 void drawPresetButtons() {
-  int presetY = 660;
+  int presetY = 710;
 
   fill(255);
   textSize(14);
@@ -628,16 +628,19 @@ void drawSlider(int x, int y, int w, String label, int value, int minVal, int ma
   textSize(14);
   text(label + ": " + value, x, y);
 
-  // 슬라이더 바
+  // 슬라이더 바 (높이 30px로 확대)
   fill(60);
   stroke(100);
-  rect(x, y + 10, w, 20);
+  strokeWeight(1);
+  rect(x, y + 10, w, 30, 3);
 
-  // 핸들
+  // 핸들 (더 크고 눈에 띄게)
   float handleX = map(value, minVal, maxVal, x, x + w);
   fill(100, 150, 255);
+  stroke(150, 200, 255);
+  strokeWeight(2);
+  rect(handleX - 8, y + 5, 16, 40, 5);
   noStroke();
-  rect(handleX - 5, y + 5, 10, 30);
 }
 
 // 세로 슬라이더
@@ -647,16 +650,19 @@ void drawVerticalSlider(int x, int y, int w, int h, String label, int value, int
   textSize(14);
   text(label, x, y - 10);
 
-  // 슬라이더 바
+  // 슬라이더 바 (둥근 모서리)
   fill(60);
   stroke(100);
-  rect(x, y, w, h);
+  strokeWeight(1);
+  rect(x, y, w, h, 3);
 
-  // 핸들
+  // 핸들 (더 크고 눈에 띄게)
   float handleY = map(value, minVal, maxVal, y + h, y);
   fill(100, 150, 255);
+  stroke(150, 200, 255);
+  strokeWeight(2);
+  rect(x - 5, handleY - 8, w + 10, 16, 5);
   noStroke();
-  rect(x, handleY - 5, w, 10);
 
   // 값 표시
   fill(255);
@@ -1000,6 +1006,16 @@ void handlePositionClicks(int yPos) {
   if (mouseX > rightX && mouseX < rightX + 20 &&
       mouseY > rightY && mouseY < rightY + 20) {
     fineMode = !fineMode;
+    return;
+  }
+
+  // XY Speed 슬라이더 클릭 (확대된 영역)
+  int speedY = rightY + 50;
+  int sliderW = 250;
+  if (mouseX > rightX && mouseX < rightX + sliderW &&
+      mouseY > speedY && mouseY < speedY + 50) {  // 클릭 영역 확대
+    xySpeed = int(constrain(map(mouseX, rightX, rightX + sliderW, 0, 255), 0, 255));
+    updateDMXChannel(5, xySpeed);
   }
 }
 
@@ -1018,13 +1034,13 @@ void handlePositionDrags(int yPos) {
     updateDMXChannel(3, int(tiltValue));
   }
 
-  // XY Speed 슬라이더
+  // XY Speed 슬라이더 (확대된 드래그 영역)
   int rightX = padX + padSize + 60;
   int rightY = padY;
   int speedY = rightY + 50;
   int sliderW = 250;
   if (mouseX > rightX && mouseX < rightX + sliderW &&
-      mouseY > speedY + 10 && mouseY < speedY + 30) {
+      mouseY > speedY && mouseY < speedY + 50) {  // 드래그 영역 확대
     xySpeed = int(constrain(map(mouseX, rightX, rightX + sliderW, 0, 255), 0, 255));
     updateDMXChannel(5, xySpeed);
   }
@@ -1045,6 +1061,7 @@ void handleLightClicks(int yPos) {
         mouseY > btnY && mouseY < btnY + 30) {
       strobeMode = i;
       updateStrobeChannel();
+      return;
     }
   }
 
@@ -1057,7 +1074,36 @@ void handleLightClicks(int yPos) {
     if (dist < 20) {
       colorMode = i;
       updateColorChannel();
+      return;
     }
+  }
+
+  // Strobe Speed 슬라이더 클릭 (strobeMode == 2일 때) - 클릭 영역 확대
+  if (strobeMode == 2) {
+    int sliderW = 150;
+    if (mouseX > strobeX && mouseX < strobeX + sliderW &&
+        mouseY > startY + 140 && mouseY < startY + 180) {  // 클릭 영역 확대
+      strobeSpeed = int(constrain(map(mouseX, strobeX, strobeX + sliderW, 8, 250), 8, 250));
+      updateStrobeChannel();
+      return;
+    }
+  }
+
+  // Dimmer 슬라이더 클릭 (세로) - 좌우 영역 확대
+  if (mouseX > startX - 20 && mouseX < startX + 80 &&  // 좌우 20px 확대
+      mouseY > startY && mouseY < startY + 240) {
+    dimmer = int(constrain(map(mouseY, startY + 240, startY, 0, 255), 0, 255));
+    updateDMXChannel(6, dimmer);
+    return;
+  }
+
+  // Color Effect 슬라이더 클릭 - 클릭 영역 확대
+  int effectY = startY + 140;
+  int sliderW = 220;
+  if (mouseX > colorX && mouseX < colorX + sliderW &&
+      mouseY > effectY && mouseY < effectY + 50) {  // 클릭 영역 확대
+    colorEffect = int(constrain(map(mouseX, colorX, colorX + sliderW, 0, 255), 0, 255));
+    updateDMXChannel(9, colorEffect);
   }
 }
 
@@ -1065,31 +1111,31 @@ void handleLightDrags(int yPos) {
   int startX = 50;
   int startY = yPos + 60;
 
-  // Dimmer 슬라이더 (세로)
-  if (mouseX > startX && mouseX < startX + 60 &&
+  // Dimmer 슬라이더 (세로) - 좌우 영역 확대
+  if (mouseX > startX - 20 && mouseX < startX + 80 &&
       mouseY > startY && mouseY < startY + 240) {
     dimmer = int(constrain(map(mouseY, startY + 240, startY, 0, 255), 0, 255));
     updateDMXChannel(6, dimmer);
   }
 
-  // Strobe Speed 슬라이더
+  // Strobe Speed 슬라이더 - 클릭 영역 확대
   if (strobeMode == 2) {
     int strobeX = startX + 160;
     int sliderW = 150;
     if (mouseX > strobeX && mouseX < strobeX + sliderW &&
-        mouseY > startY + 150 && mouseY < startY + 170) {
+        mouseY > startY + 140 && mouseY < startY + 180) {
       strobeSpeed = int(constrain(map(mouseX, strobeX, strobeX + sliderW, 8, 250), 8, 250));
       updateStrobeChannel();
     }
   }
 
-  // Color Effect 슬라이더
+  // Color Effect 슬라이더 - 클릭 영역 확대
   int strobeX = startX + 160;
   int colorX = strobeX + 250;
   int effectY = startY + 140;
   int sliderW = 220;
   if (mouseX > colorX && mouseX < colorX + sliderW &&
-      mouseY > effectY + 10 && mouseY < effectY + 30) {
+      mouseY > effectY && mouseY < effectY + 50) {
     colorEffect = int(constrain(map(mouseX, colorX, colorX + sliderW, 0, 255), 0, 255));
     updateDMXChannel(9, colorEffect);
   }
@@ -1117,6 +1163,7 @@ void handleGoboClicks(int yPos) {
         staticGobo = i + 1;
         updateGoboChannel(10, i + 1);
       }
+      return;
     }
   }
 
@@ -1136,7 +1183,17 @@ void handleGoboClicks(int yPos) {
         rotationGobo = i + 1;
         updateGoboChannel(11, i + 1);
       }
+      return;
     }
+  }
+
+  // Gobo Rotation 슬라이더 클릭
+  int rotSliderY = startY + 200;
+  int sliderW = 350;
+  if (mouseX > startX && mouseX < startX + sliderW &&
+      mouseY > rotSliderY + 10 && mouseY < rotSliderY + 30) {
+    goboRotation = int(constrain(map(mouseX, startX, startX + sliderW, 0, 255), 0, 255));
+    updateDMXChannel(12, goboRotation);
   }
 }
 
@@ -1146,9 +1203,9 @@ void handleGoboDrags(int yPos) {
   int rotSliderY = startY + 200;
   int sliderW = 350;
 
-  // Gobo Rotation 슬라이더
+  // Gobo Rotation 슬라이더 - 클릭 영역 확대
   if (mouseX > startX && mouseX < startX + sliderW &&
-      mouseY > rotSliderY + 10 && mouseY < rotSliderY + 30) {
+      mouseY > rotSliderY && mouseY < rotSliderY + 50) {
     goboRotation = int(constrain(map(mouseX, startX, startX + sliderW, 0, 255), 0, 255));
     updateDMXChannel(12, goboRotation);
   }
@@ -1162,12 +1219,40 @@ void handleBeamClicks(int yPos) {
   int startY = yPos + 60;
   int zoomY = startY + 70;
   int prismY = zoomY + 70;
+  int sliderW = 350;
 
   // Prism 체크박스
   if (mouseX > startX && mouseX < startX + 20 &&
       mouseY > prismY && mouseY < prismY + 20) {
     prismOn = !prismOn;
     updateDMXChannel(15, prismOn ? 128 : 0);
+    return;
+  }
+
+  // Focus 슬라이더 클릭
+  if (mouseX > startX && mouseX < startX + sliderW &&
+      mouseY > startY + 10 && mouseY < startY + 30) {
+    focus = int(constrain(map(mouseX, startX, startX + sliderW, 0, 255), 0, 255));
+    updateDMXChannel(13, focus);
+    return;
+  }
+
+  // Zoom 슬라이더 클릭
+  if (mouseX > startX && mouseX < startX + sliderW &&
+      mouseY > zoomY + 10 && mouseY < zoomY + 30) {
+    zoom = int(constrain(map(mouseX, startX, startX + sliderW, 0, 255), 0, 255));
+    updateDMXChannel(14, zoom);
+    return;
+  }
+
+  // Prism Rotation 슬라이더 클릭
+  if (prismOn) {
+    int rotY = prismY + 40;
+    if (mouseX > startX && mouseX < startX + sliderW &&
+        mouseY > rotY + 10 && mouseY < rotY + 30) {
+      prismRotation = int(constrain(map(mouseX, startX, startX + sliderW, 0, 255), 0, 255));
+      updateDMXChannel(16, prismRotation);
+    }
   }
 }
 
@@ -1176,27 +1261,27 @@ void handleBeamDrags(int yPos) {
   int startY = yPos + 60;
   int sliderW = 350;
 
-  // Focus 슬라이더
+  // Focus 슬라이더 - 클릭 영역 확대
   if (mouseX > startX && mouseX < startX + sliderW &&
-      mouseY > startY + 10 && mouseY < startY + 30) {
+      mouseY > startY && mouseY < startY + 50) {
     focus = int(constrain(map(mouseX, startX, startX + sliderW, 0, 255), 0, 255));
     updateDMXChannel(13, focus);
   }
 
-  // Zoom 슬라이더
+  // Zoom 슬라이더 - 클릭 영역 확대
   int zoomY = startY + 70;
   if (mouseX > startX && mouseX < startX + sliderW &&
-      mouseY > zoomY + 10 && mouseY < zoomY + 30) {
+      mouseY > zoomY && mouseY < zoomY + 50) {
     zoom = int(constrain(map(mouseX, startX, startX + sliderW, 0, 255), 0, 255));
     updateDMXChannel(14, zoom);
   }
 
-  // Prism Rotation
+  // Prism Rotation - 클릭 영역 확대
   if (prismOn) {
     int prismY = zoomY + 70;
     int rotY = prismY + 40;
     if (mouseX > startX && mouseX < startX + sliderW &&
-        mouseY > rotY + 10 && mouseY < rotY + 30) {
+        mouseY > rotY && mouseY < rotY + 50) {
       prismRotation = int(constrain(map(mouseX, startX, startX + sliderW, 0, 255), 0, 255));
       updateDMXChannel(16, prismRotation);
     }
@@ -1209,12 +1294,22 @@ void handleBeamDrags(int yPos) {
 void handleEffectsClicks(int yPos) {
   int startX = 50;
   int startY = yPos + 60;
+  int autoY = startY + 50;
+  int sliderW = 350;
 
   // Frost 체크박스
   if (mouseX > startX && mouseX < startX + 20 &&
       mouseY > startY && mouseY < startY + 20) {
     frostOn = !frostOn;
     updateDMXChannel(17, frostOn ? 128 : 0);
+    return;
+  }
+
+  // Auto Program 슬라이더 클릭
+  if (mouseX > startX && mouseX < startX + sliderW &&
+      mouseY > autoY + 10 && mouseY < autoY + 30) {
+    autoProgram = int(constrain(map(mouseX, startX, startX + sliderW, 0, 131), 0, 131));
+    updateDMXChannel(18, autoProgram);
   }
 }
 
@@ -1224,9 +1319,9 @@ void handleEffectsDrags(int yPos) {
   int autoY = startY + 50;
   int sliderW = 350;
 
-  // Auto Program 슬라이더
+  // Auto Program 슬라이더 - 클릭 영역 확대
   if (mouseX > startX && mouseX < startX + sliderW &&
-      mouseY > autoY + 10 && mouseY < autoY + 30) {
+      mouseY > autoY && mouseY < autoY + 50) {
     autoProgram = int(constrain(map(mouseX, startX, startX + sliderW, 0, 131), 0, 131));
     updateDMXChannel(18, autoProgram);
   }

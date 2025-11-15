@@ -5,25 +5,18 @@ Serial myPort;
 // ============================================
 // 레이아웃 상수
 // ============================================
-final int WINDOW_WIDTH = 1800;
-final int WINDOW_HEIGHT = 750;
+final int WINDOW_WIDTH = 1400;
+final int WINDOW_HEIGHT = 700;
 final int TAB_CONTENT_X = 50;
 final int TAB_CONTENT_OFFSET_Y = 60;
 final int DMX_MONITOR_Y = 480;
 final int DMX_MONITOR_HEIGHT = 140;
 final int TIMELINE_Y = 630;
-final int PRESETS_Y = 710;
 
 // ============================================
 // DMX 채널 데이터 (18채널)
 // ============================================
 int[] dmxChannels = new int[18];
-
-// ============================================
-// 프리셋 시스템 (F1~F12)
-// ============================================
-int[][] presets = new int[12][18];
-String[] presetNames = new String[12];
 
 // ============================================
 // UI 탭 시스템
@@ -121,7 +114,7 @@ boolean isManualMode = false;
 String manualInput = "";
 
 void setup() {
-  size(1800, 750);  // Processing size()는 리터럴 값만 허용
+  size(1400, 700);  // Processing size()는 리터럴 값만 허용
 
   // 시리얼 포트 연결
   println("사용 가능한 시리얼 포트:");
@@ -142,11 +135,6 @@ void setup() {
   // 초기화
   for (int i = 0; i < 18; i++) {
     dmxChannels[i] = 0;
-  }
-
-  // 프리셋 이름 초기화
-  for (int i = 0; i < 12; i++) {
-    presetNames[i] = "Preset " + (i + 1);
   }
 }
 
@@ -169,9 +157,6 @@ void draw() {
 
   // 하단 타임라인 영역 (Phase 3에서 구현)
   drawTimelineArea();
-
-  // 프리셋 버튼 영역
-  drawPresetButtons();
 
   // 숫자 입력 모드 UI (최상위 오버레이)
   if (isInputMode) {
@@ -463,7 +448,7 @@ void drawDMXMonitor() {
   fill(30);
   stroke(100);
   strokeWeight(1);
-  rect(20, monitorY, 1760, monitorHeight);
+  rect(20, monitorY, 1360, monitorHeight);
 
   // 타이틀
   fill(100, 200, 255);
@@ -518,7 +503,7 @@ void drawDMXMonitor() {
 // 수동 CMD 입력
 // ============================================
 void drawManualInput() {
-  int inputX = 1400;
+  int inputX = 1000;
   int inputY = DMX_MONITOR_Y + 15;
   int inputW = 350;
   int inputH = 30;
@@ -566,37 +551,11 @@ void drawTimelineArea() {
 
   fill(50);
   stroke(100);
-  rect(20, tlY, 1760, 60);
+  rect(20, tlY, 1360, 60);
 
   fill(150);
   textSize(14);
   text("🎬 Timeline / Sequencer (Coming in Phase 3)", 30, tlY + 20);
-}
-
-// ============================================
-// 프리셋 버튼 영역
-// ============================================
-void drawPresetButtons() {
-  int presetY = PRESETS_Y;
-
-  fill(255);
-  textSize(14);
-  text("💾 Presets (Shift+F1~F12 = Save, F1~F12 = Load):", 20, presetY);
-
-  for (int i = 0; i < 12; i++) {
-    int btnX = 20 + i * 145;
-    int btnY = presetY + 10;
-
-    fill(60);
-    stroke(100);
-    rect(btnX, btnY, 130, 30, 3);
-
-    fill(200);
-    textSize(12);
-    textAlign(CENTER, CENTER);
-    text("F" + (i + 1), btnX + 65, btnY + 15);
-    textAlign(LEFT, BASELINE);
-  }
 }
 
 // ============================================
@@ -830,7 +789,7 @@ void drawGoboButton(int x, int y, int size, int num, boolean selected) {
 // ============================================
 void mousePressed() {
   // 수동 CMD 입력 박스 클릭 감지 (우선 체크)
-  int inputX = 1400;
+  int inputX = 1000;
   int inputY = DMX_MONITOR_Y + 15;
   int inputW = 350;
   int inputH = 30;
@@ -1515,31 +1474,6 @@ void keyPressed() {
       key = 0;  // ESC 기본 동작 방지
     }
     return;  // 입력 모드일 때는 다른 키 처리 안 함
-  }
-
-  // F1~F12 (키코드 112-123)
-  if (keyCode >= 112 && keyCode <= 123) {
-    int presetNum = keyCode - 112;
-
-    if (keyPressed && key == CODED && keyEvent.isShiftDown()) {
-      // 저장
-      for (int i = 0; i < 18; i++) {
-        presets[presetNum][i] = dmxChannels[i];
-      }
-      println("Preset F" + (presetNum + 1) + " SAVED");
-    } else {
-      // 로드
-      for (int i = 0; i < 18; i++) {
-        dmxChannels[i] = presets[presetNum][i];
-        sendDMX(i + 1, dmxChannels[i]);
-        // 시리얼 버퍼 오버플로우 방지를 위한 지연
-        delay(5);
-      }
-
-      // UI 변수 동기화
-      syncUIFromDMX();
-      println("Preset F" + (presetNum + 1) + " LOADED");
-    }
   }
 }
 

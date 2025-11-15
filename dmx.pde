@@ -3,6 +3,18 @@ import processing.serial.*;
 Serial myPort;
 
 // ============================================
+// 레이아웃 상수
+// ============================================
+final int WINDOW_WIDTH = 1800;
+final int WINDOW_HEIGHT = 750;
+final int TAB_CONTENT_X = 50;
+final int TAB_CONTENT_OFFSET_Y = 60;
+final int DMX_MONITOR_Y = 480;
+final int DMX_MONITOR_HEIGHT = 140;
+final int TIMELINE_Y = 630;
+final int PRESETS_Y = 710;
+
+// ============================================
 // DMX 채널 데이터 (18채널)
 // ============================================
 int[] dmxChannels = new int[18];
@@ -103,11 +115,23 @@ String[] channelNames = {
 };
 
 void setup() {
-  size(1800, 750);
+  size(WINDOW_WIDTH, WINDOW_HEIGHT);
 
   // 시리얼 포트 연결
+  println("사용 가능한 시리얼 포트:");
   printArray(Serial.list());
-  myPort = new Serial(this, "/dev/tty.usbmodem1201", 115200);
+
+  try {
+    myPort = new Serial(this, "/dev/tty.usbmodem1201", 115200);
+    println("✓ 시리얼 포트 연결 성공: /dev/tty.usbmodem1201");
+  } catch (Exception e) {
+    println("✗ 에러: 시리얼 포트를 열 수 없습니다");
+    println("  포트: /dev/tty.usbmodem1201");
+    println("  원인: " + e.getMessage());
+    println("  → DMX 장치가 연결되어 있는지 확인하세요");
+    println("  → 프로그램은 계속 실행되지만 DMX 명령은 전송되지 않습니다");
+    myPort = null;
+  }
 
   // 초기화
   for (int i = 0; i < 18; i++) {
@@ -215,7 +239,7 @@ void drawPositionTab(int yPos) {
 
   int margin = 30;
   int padX = 50;
-  int padY = yPos + 60;
+  int padY = yPos + TAB_CONTENT_OFFSET_Y;
   int padSize = 300;
 
   // 2D XY 패드 영역
@@ -238,7 +262,7 @@ void drawPositionTab(int yPos) {
   noStroke();
   ellipse(panX, tiltY, 20, 20);
 
-  // 값 표시 영역 (패드 아래 20px 마진)
+  // 값 표시 영역 (패드 아래 20px 마진) - 한 줄로 표시
   int valueY = padY + padSize + 20;
   fill(255);
   textSize(14);
@@ -248,10 +272,10 @@ void drawPositionTab(int yPos) {
   drawValueBox(padX + 50, valueY, int(panValue), null);
   text("(" + nf(map(panValue, 0, 255, 0, 540), 0, 1) + "°)", padX + 110, valueY + 15);
 
-  // Tilt 값
-  text("Tilt:", padX, valueY + 45);
-  drawValueBox(padX + 50, valueY + 30, int(tiltValue), null);
-  text("(" + nf(map(tiltValue, 0, 255, 0, 270), 0, 1) + "°)", padX + 110, valueY + 45);
+  // Tilt 값 (같은 줄)
+  text("Tilt:", padX + 200, valueY + 15);
+  drawValueBox(padX + 250, valueY, int(tiltValue), null);
+  text("(" + nf(map(tiltValue, 0, 255, 0, 270), 0, 1) + "°)", padX + 310, valueY + 15);
 
   // 오른쪽 컨트롤 영역
   int rightX = padX + padSize + 60;
@@ -287,8 +311,8 @@ void drawLightTab(int yPos) {
   text("Light Control (Dimmer/Strobe/Color)", 30, yPos + 20);
 
   int margin = 30;
-  int startX = 50;
-  int startY = yPos + 60;
+  int startX = TAB_CONTENT_X;
+  int startY = yPos + TAB_CONTENT_OFFSET_Y;
 
   // Dimmer 섹션
   fill(255);
@@ -323,8 +347,8 @@ void drawGoboTab(int yPos) {
   text("Gobo Control (Pattern Selection)", 30, yPos + 20);
 
   int margin = 30;
-  int startX = 50;
-  int startY = yPos + 60;
+  int startX = TAB_CONTENT_X;
+  int startY = yPos + TAB_CONTENT_OFFSET_Y;
 
   // Static Gobo 섹션
   fill(255);
@@ -365,8 +389,8 @@ void drawBeamTab(int yPos) {
   text("Beam Control (Focus/Zoom/Prism)", 30, yPos + 20);
 
   int margin = 30;
-  int startX = 50;
-  int startY = yPos + 60;
+  int startX = TAB_CONTENT_X;
+  int startY = yPos + TAB_CONTENT_OFFSET_Y;
 
   // Focus 슬라이더
   fill(255);
@@ -407,8 +431,8 @@ void drawEffectsTab(int yPos) {
   text("Special Effects (Frost/Auto)", 30, yPos + 20);
 
   int margin = 30;
-  int startX = 50;
-  int startY = yPos + 60;
+  int startX = TAB_CONTENT_X;
+  int startY = yPos + TAB_CONTENT_OFFSET_Y;
 
   // Frost 토글
   drawCheckbox(startX, startY, "Frost Effect", frostOn);
@@ -426,8 +450,8 @@ void drawEffectsTab(int yPos) {
 // DMX 출력 모니터
 // ============================================
 void drawDMXMonitor() {
-  int monitorY = 480;
-  int monitorHeight = 140;
+  int monitorY = DMX_MONITOR_Y;
+  int monitorHeight = DMX_MONITOR_HEIGHT;
 
   // 배경
   fill(30);
@@ -485,7 +509,7 @@ void drawDMXMonitor() {
 // 타임라인 영역 (Phase 3에서 구현)
 // ============================================
 void drawTimelineArea() {
-  int tlY = 630;
+  int tlY = TIMELINE_Y;
 
   fill(50);
   stroke(100);
@@ -500,7 +524,7 @@ void drawTimelineArea() {
 // 프리셋 버튼 영역
 // ============================================
 void drawPresetButtons() {
-  int presetY = 710;
+  int presetY = PRESETS_Y;
 
   fill(255);
   textSize(14);
@@ -812,7 +836,7 @@ boolean checkValueBoxClick() {
 // Position 탭 값 박스 클릭 체크
 boolean checkPositionValueBox(int yPos) {
   int padX = 50;
-  int padY = yPos + 60;
+  int padY = yPos + TAB_CONTENT_OFFSET_Y;
   int padSize = 300;
   int valueY = padY + padSize + 20;
 
@@ -842,8 +866,8 @@ boolean checkPositionValueBox(int yPos) {
 
 // Light 탭 값 박스 클릭 체크
 boolean checkLightValueBox(int yPos) {
-  int startX = 50;
-  int startY = yPos + 60;
+  int startX = TAB_CONTENT_X;
+  int startY = yPos + TAB_CONTENT_OFFSET_Y;
 
   // Dimmer 값 박스
   if (isInsideBox(startX + 70, startY + 105, 50, 25)) {
@@ -874,8 +898,8 @@ boolean checkLightValueBox(int yPos) {
 
 // Gobo 탭 값 박스 클릭 체크
 boolean checkGoboValueBox(int yPos) {
-  int startX = 50;
-  int startY = yPos + 60;
+  int startX = TAB_CONTENT_X;
+  int startY = yPos + TAB_CONTENT_OFFSET_Y;
   int rotSliderY = startY + 200;
 
   // Gobo Rotation 값 박스
@@ -889,8 +913,8 @@ boolean checkGoboValueBox(int yPos) {
 
 // Beam 탭 값 박스 클릭 체크
 boolean checkBeamValueBox(int yPos) {
-  int startX = 50;
-  int startY = yPos + 60;
+  int startX = TAB_CONTENT_X;
+  int startY = yPos + TAB_CONTENT_OFFSET_Y;
 
   // Focus 값 박스
   if (isInsideBox(startX + 360, startY + 10, 50, 25)) {
@@ -920,8 +944,8 @@ boolean checkBeamValueBox(int yPos) {
 
 // Effects 탭 값 박스 클릭 체크
 boolean checkEffectsValueBox(int yPos) {
-  int startX = 50;
-  int startY = yPos + 60;
+  int startX = TAB_CONTENT_X;
+  int startY = yPos + TAB_CONTENT_OFFSET_Y;
   int autoY = startY + 50;
 
   // Auto Program 값 박스
@@ -997,7 +1021,7 @@ void handleTabDrags() {
 // ============================================
 void handlePositionClicks(int yPos) {
   int padX = 50;
-  int padY = yPos + 60;
+  int padY = yPos + TAB_CONTENT_OFFSET_Y;
   int padSize = 300;
   int rightX = padX + padSize + 60;
   int rightY = padY;
@@ -1021,7 +1045,7 @@ void handlePositionClicks(int yPos) {
 
 void handlePositionDrags(int yPos) {
   int padX = 50;
-  int padY = yPos + 60;
+  int padY = yPos + TAB_CONTENT_OFFSET_Y;
   int padSize = 300;
 
   // XY 패드 드래그
@@ -1050,8 +1074,8 @@ void handlePositionDrags(int yPos) {
 // Light 탭 인터랙션
 // ============================================
 void handleLightClicks(int yPos) {
-  int startX = 50;
-  int startY = yPos + 60;
+  int startX = TAB_CONTENT_X;
+  int startY = yPos + TAB_CONTENT_OFFSET_Y;
   int strobeX = startX + 160;
 
   // Strobe 모드 버튼
@@ -1108,8 +1132,8 @@ void handleLightClicks(int yPos) {
 }
 
 void handleLightDrags(int yPos) {
-  int startX = 50;
-  int startY = yPos + 60;
+  int startX = TAB_CONTENT_X;
+  int startY = yPos + TAB_CONTENT_OFFSET_Y;
 
   // Dimmer 슬라이더 (세로) - 좌우 영역 확대
   if (mouseX > startX - 20 && mouseX < startX + 80 &&
@@ -1145,8 +1169,8 @@ void handleLightDrags(int yPos) {
 // Gobo 탭 인터랙션
 // ============================================
 void handleGoboClicks(int yPos) {
-  int startX = 50;
-  int startY = yPos + 60;
+  int startX = TAB_CONTENT_X;
+  int startY = yPos + TAB_CONTENT_OFFSET_Y;
 
   // Static Gobo (토글: 다시 클릭하면 off)
   for (int i = 0; i < 8; i++) {
@@ -1198,8 +1222,8 @@ void handleGoboClicks(int yPos) {
 }
 
 void handleGoboDrags(int yPos) {
-  int startX = 50;
-  int startY = yPos + 60;
+  int startX = TAB_CONTENT_X;
+  int startY = yPos + TAB_CONTENT_OFFSET_Y;
   int rotSliderY = startY + 200;
   int sliderW = 350;
 
@@ -1215,8 +1239,8 @@ void handleGoboDrags(int yPos) {
 // Beam 탭 인터랙션
 // ============================================
 void handleBeamClicks(int yPos) {
-  int startX = 50;
-  int startY = yPos + 60;
+  int startX = TAB_CONTENT_X;
+  int startY = yPos + TAB_CONTENT_OFFSET_Y;
   int zoomY = startY + 70;
   int prismY = zoomY + 70;
   int sliderW = 350;
@@ -1257,8 +1281,8 @@ void handleBeamClicks(int yPos) {
 }
 
 void handleBeamDrags(int yPos) {
-  int startX = 50;
-  int startY = yPos + 60;
+  int startX = TAB_CONTENT_X;
+  int startY = yPos + TAB_CONTENT_OFFSET_Y;
   int sliderW = 350;
 
   // Focus 슬라이더 - 클릭 영역 확대
@@ -1292,8 +1316,8 @@ void handleBeamDrags(int yPos) {
 // Effects 탭 인터랙션
 // ============================================
 void handleEffectsClicks(int yPos) {
-  int startX = 50;
-  int startY = yPos + 60;
+  int startX = TAB_CONTENT_X;
+  int startY = yPos + TAB_CONTENT_OFFSET_Y;
   int autoY = startY + 50;
   int sliderW = 350;
 
@@ -1314,8 +1338,8 @@ void handleEffectsClicks(int yPos) {
 }
 
 void handleEffectsDrags(int yPos) {
-  int startX = 50;
-  int startY = yPos + 60;
+  int startX = TAB_CONTENT_X;
+  int startY = yPos + TAB_CONTENT_OFFSET_Y;
   int autoY = startY + 50;
   int sliderW = 350;
 
@@ -1417,6 +1441,8 @@ void keyPressed() {
       for (int i = 0; i < 18; i++) {
         dmxChannels[i] = presets[presetNum][i];
         sendDMX(i + 1, dmxChannels[i]);
+        // 시리얼 버퍼 오버플로우 방지를 위한 지연
+        delay(5);
       }
 
       // UI 변수 동기화
@@ -1448,6 +1474,19 @@ void syncUIFromDMX() {
 // ============================================
 void sendDMX(int channel, int value) {
   String cmd = "CH" + channel + "=" + value + "\n";
+
+  // 시리얼 포트 연결 확인
+  if (myPort == null) {
+    println("경고: 시리얼 연결 없음 - " + cmd.trim());
+    // DMX 출력 모니터에는 추가 (UI 동작 확인용)
+    commandHistory.add(new DMXCommand(channel, value, cmd));
+    // 최대 크기 초과시 오래된 것 제거
+    while (commandHistory.size() > maxHistorySize) {
+      commandHistory.remove(0);
+    }
+    return;
+  }
+
   println("SEND → " + cmd);
   myPort.write(cmd);
 

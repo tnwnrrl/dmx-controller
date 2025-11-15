@@ -612,7 +612,7 @@ void drawResetButton() {
 // ============================================
 void drawTimelineArea() {
   int tlY = TIMELINE_Y;
-  int tlH = 60;
+  int tlH = 120;  // 높이 확장 (60 → 120)
 
   // 배경
   fill(50);
@@ -663,6 +663,54 @@ void drawTimelineArea() {
 
   // 키프레임 컨트롤 버튼
   drawKeyframeControls(1290, tlY + 35);
+
+  // 선택된 키프레임 정보 표시
+  drawSelectedKeyframeInfo(tlY);
+}
+
+// 선택된 키프레임 정보 표시
+void drawSelectedKeyframeInfo(int tlY) {
+  if (selectedKeyframe < 0 || selectedKeyframe >= timeline.size()) {
+    return;  // 선택된 키프레임 없음
+  }
+
+  Keyframe kf = timeline.get(selectedKeyframe);
+  int infoY = tlY + 70;  // 타임라인 아래쪽 시작
+
+  // 헤더
+  fill(255, 200, 100);
+  textSize(12);
+  textAlign(LEFT, TOP);
+  text("⚡ Selected Keyframe #" + (selectedKeyframe + 1) + " @ " + formatTime(kf.timestamp), 30, infoY);
+
+  // 채널 값 표시 (3줄로 나눠서)
+  fill(200, 220, 255);
+  textSize(10);
+  int startX = 30;
+  int lineHeight = 14;
+
+  // 1줄: CH1~6
+  String line1 = "";
+  for (int i = 0; i < 6; i++) {
+    line1 += "CH" + (i + 1) + ":" + kf.dmxValues[i] + "  ";
+  }
+  text(line1, startX, infoY + 18);
+
+  // 2줄: CH7~12
+  String line2 = "";
+  for (int i = 6; i < 12; i++) {
+    line2 += "CH" + (i + 1) + ":" + kf.dmxValues[i] + "  ";
+  }
+  text(line2, startX, infoY + 18 + lineHeight);
+
+  // 3줄: CH13~18
+  String line3 = "";
+  for (int i = 12; i < 18; i++) {
+    line3 += "CH" + (i + 1) + ":" + kf.dmxValues[i] + "  ";
+  }
+  text(line3, startX, infoY + 18 + lineHeight * 2);
+
+  textAlign(LEFT, BASELINE);
 }
 
 // 키프레임 추가/삭제 버튼
@@ -1981,9 +2029,9 @@ void drawKeyframeMarkers(int x, int y, int w, int h, float duration) {
       fill(100, 255, 100);
     }
 
-    // 삼각형 마커
+    // 삼각형 마커 (크기 2배 확대)
     noStroke();
-    triangle(markerX, y - 8, markerX - 4, y - 2, markerX + 4, y - 2);
+    triangle(markerX, y - 16, markerX - 8, y - 4, markerX + 8, y - 4);
   }
 }
 
@@ -2048,7 +2096,7 @@ boolean handleTimelineClick() {
       for (int i = 0; i < timeline.size(); i++) {
         Keyframe kf = timeline.get(i);
         float markerX = seekX + seekW * (kf.timestamp / duration);
-        if (abs(mouseX - markerX) < 5) {
+        if (abs(mouseX - markerX) < 10) {  // 클릭 영역 확대 (5 → 10)
           selectedKeyframe = i;
           // 키프레임 값 즉시 적용
           applyKeyframe(kf);

@@ -1,6 +1,8 @@
 import processing.serial.*;
+import processing.video.*;
 
 Serial myPort;
+Movie movie;
 
 // ============================================
 // 레이아웃 상수
@@ -74,11 +76,14 @@ boolean frostOn = false;  // CH17: Frost
 int autoProgram = 0;      // CH18: Auto program
 
 // ============================================
-// 타임라인/시퀀서 변수 (Phase 3에서 구현)
+// 타임라인/시퀀서 변수 (Phase 3 - Video Sequencer)
 // ============================================
 boolean isRecording = false;
 boolean isPlaying = false;
 ArrayList<Keyframe> timeline = new ArrayList<Keyframe>();
+String videoPath = "video.mp4";  // data/ 폴더 기준
+float videoTime = 0;  // 현재 비디오 시간 (초)
+int selectedKeyframe = -1;  // 선택된 키프레임 인덱스 (-1 = 없음)
 
 // ============================================
 // DMX 출력 모니터 변수
@@ -170,6 +175,9 @@ void setup() {
   for (int i = 0; i < 18; i++) {
     dmxChannels[i] = 0;
   }
+
+  // 비디오 로드
+  loadVideo();
 }
 
 void draw() {
@@ -596,14 +604,49 @@ void drawResetButton() {
 // ============================================
 void drawTimelineArea() {
   int tlY = TIMELINE_Y;
+  int tlH = 60;
 
+  // 배경
   fill(50);
   stroke(100);
-  rect(20, tlY, 1360, 60);
+  rect(20, tlY, 1360, tlH);
 
-  fill(150);
-  textSize(14);
-  text("🎬 Timeline / Sequencer (Coming in Phase 3)", 30, tlY + 20);
+  // 비디오 없으면 경고 메시지
+  if (movie == null) {
+    fill(255, 150, 150);
+    textSize(12);
+    text("⚠️ 비디오 파일 없음 - data/video.mp4 파일을 추가하세요", 30, tlY + 30);
+    return;
+  }
+
+  // 비디오 프리뷰 (80x60)
+  int previewX = 30;
+  int previewY = tlY + 5;
+  int previewW = 80;
+  int previewH = 50;
+
+  if (movie.width > 0 && movie.height > 0) {
+    image(movie, previewX, previewY, previewW, previewH);
+  } else {
+    fill(30);
+    rect(previewX, previewY, previewW, previewH);
+    fill(100);
+    textSize(10);
+    textAlign(CENTER, CENTER);
+    text("No\nFrame", previewX + previewW/2, previewY + previewH/2);
+    textAlign(LEFT, BASELINE);
+  }
+
+  // 재생 컨트롤 버튼
+  drawPlaybackControls(previewX + previewW + 20, tlY + 10);
+
+  // 타임라인 시크바
+  drawTimelineSeekbar(300, tlY + 15, 980);
+
+  // 키프레임 정보
+  fill(200);
+  textSize(11);
+  text("Keyframes: " + timeline.size(), 1290, tlY + 25);
 }
 
 // ============================================
@@ -836,6 +879,11 @@ void drawGoboButton(int x, int y, int size, int num, boolean selected) {
 // 마우스 클릭 이벤트
 // ============================================
 void mousePressed() {
+  // 타임라인 컨트롤 버튼 클릭 감지 (최우선)
+  if (handleTimelineClick()) {
+    return;
+  }
+
   // 수동 CMD 입력 박스 클릭 감지 (우선 체크)
   int inputX = MANUAL_INPUT_X;
   int inputY = DMX_MONITOR_Y + MANUAL_INPUT_Y_OFFSET;
@@ -1663,15 +1711,15 @@ void resetAllChannels() {
 }
 
 // ============================================
-// 키프레임 클래스 (Phase 3에서 사용)
+// 키프레임 클래스 (Phase 3 - Video Sequencer)
 // ============================================
 class Keyframe {
-  float time;
-  int[] values;
+  float timestamp;  // 비디오 시간 (초)
+  int[] dmxValues;  // 18채널 DMX 값 (0-255)
 
-  Keyframe(float t, int[] v) {
-    time = t;
-    values = v.clone();
+  Keyframe(float t, int[] values) {
+    timestamp = t;
+    dmxValues = values.clone();  // 배열 복사
   }
 }
 
@@ -1710,4 +1758,224 @@ class DMXCommand {
   String getRawCommand() {
     return rawCommand;
   }
+}
+
+// ============================================
+// 비디오 로드 및 재생
+// ============================================
+void loadVideo() {
+  try {
+    movie = new Movie(this, videoPath);
+    println("✓ 비디오 로드 성공: " + videoPath);
+  } catch (Exception e) {
+    println("✗ 에러: 비디오 파일을 열 수 없습니다");
+    println("  경로: data/" + videoPath);
+    println("  원인: " + e.getMessage());
+    println("  → data/ 폴더에 video.mp4 파일이 있는지 확인하세요");
+    movie = null;
+  }
+}
+
+// Processing 비디오 라이브러리가 새 프레임을 읽을 때 자동 호출
+void movieEvent(Movie m) {
+  m.read();
+}
+
+// ============================================
+// 재생 컨트롤 버튼 (Stop, Play, Pause)
+// ============================================
+void drawPlaybackControls(int x, int y) {
+  int btnW = 40;
+  int btnH = 40;
+  int spacing = 10;
+
+  // Stop 버튼
+  drawControlButton(x, y, btnW, btnH, "■", !isPlaying);
+
+  // Play 버튼
+  drawControlButton(x + btnW + spacing, y, btnW, btnH, "▶", isPlaying);
+
+  // Pause 버튼
+  drawControlButton(x + (btnW + spacing) * 2, y, btnW, btnH, "⏸", false);
+}
+
+void drawControlButton(int x, int y, int w, int h, String label, boolean active) {
+  boolean hover = mouseX > x && mouseX < x + w && mouseY > y && mouseY < y + h;
+
+  // 배경
+  if (active) {
+    fill(100, 150, 100);
+    stroke(150, 255, 150);
+  } else if (hover) {
+    fill(80, 80, 120);
+    stroke(150, 150, 255);
+  } else {
+    fill(60);
+    stroke(100);
+  }
+  strokeWeight(1);
+  rect(x, y, w, h, 3);
+
+  // 레이블
+  fill(255);
+  textSize(18);
+  textAlign(CENTER, CENTER);
+  text(label, x + w/2, y + h/2);
+  textAlign(LEFT, BASELINE);
+}
+
+// ============================================
+// 타임라인 시크바
+// ============================================
+void drawTimelineSeekbar(int x, int y, int w) {
+  int h = 30;
+
+  // 배경 (시크바 트랙)
+  fill(40);
+  stroke(80);
+  strokeWeight(1);
+  rect(x, y, w, h, 3);
+
+  // 시간 정보
+  float duration = (movie != null && movie.duration() > 0) ? movie.duration() : 0;
+  videoTime = (movie != null) ? movie.time() : 0;
+
+  // 진행 바
+  if (duration > 0) {
+    float progress = videoTime / duration;
+    fill(100, 150, 255, 100);
+    noStroke();
+    rect(x, y, w * progress, h, 3);
+
+    // 현재 위치 핸들
+    float handleX = x + w * progress;
+    fill(100, 200, 255);
+    stroke(150, 220, 255);
+    strokeWeight(2);
+    rect(handleX - 4, y - 5, 8, h + 10, 3);
+  }
+
+  // 키프레임 마커
+  drawKeyframeMarkers(x, y, w, h, duration);
+
+  // 시간 텍스트
+  noStroke();
+  fill(200);
+  textSize(11);
+  textAlign(CENTER, CENTER);
+  String timeText = formatTime(videoTime) + " / " + formatTime(duration);
+  text(timeText, x + w/2, y + h/2);
+  textAlign(LEFT, BASELINE);
+}
+
+// 키프레임 마커 그리기
+void drawKeyframeMarkers(int x, int y, int w, int h, float duration) {
+  if (duration == 0) return;
+
+  for (int i = 0; i < timeline.size(); i++) {
+    Keyframe kf = timeline.get(i);
+    float markerX = x + w * (kf.timestamp / duration);
+
+    // 선택된 키프레임은 다른 색
+    if (i == selectedKeyframe) {
+      fill(255, 200, 100);
+    } else {
+      fill(100, 255, 100);
+    }
+
+    // 삼각형 마커
+    noStroke();
+    triangle(markerX, y - 8, markerX - 4, y - 2, markerX + 4, y - 2);
+  }
+}
+
+// 시간 포맷팅 (MM:SS)
+String formatTime(float seconds) {
+  if (seconds < 0) seconds = 0;
+  int mins = int(seconds / 60);
+  int secs = int(seconds % 60);
+  return nf(mins, 2) + ":" + nf(secs, 2);
+}
+
+// ============================================
+// 타임라인 마우스 클릭 처리
+// ============================================
+boolean handleTimelineClick() {
+  if (movie == null) return false;
+
+  int tlY = TIMELINE_Y;
+  int previewX = 30;
+  int previewW = 80;
+
+  // 재생 컨트롤 버튼 좌표
+  int btnStartX = previewX + previewW + 20;
+  int btnY = tlY + 10;
+  int btnW = 40;
+  int btnH = 40;
+  int spacing = 10;
+
+  // Stop 버튼
+  if (mouseX > btnStartX && mouseX < btnStartX + btnW &&
+      mouseY > btnY && mouseY < btnY + btnH) {
+    stopVideo();
+    return true;
+  }
+
+  // Play 버튼
+  int playX = btnStartX + btnW + spacing;
+  if (mouseX > playX && mouseX < playX + btnW &&
+      mouseY > btnY && mouseY < btnY + btnH) {
+    playVideo();
+    return true;
+  }
+
+  // Pause 버튼
+  int pauseX = playX + btnW + spacing;
+  if (mouseX > pauseX && mouseX < pauseX + btnW &&
+      mouseY > btnY && mouseY < btnY + btnH) {
+    pauseVideo();
+    return true;
+  }
+
+  // 시크바 클릭 (시간 점프)
+  int seekX = 300;
+  int seekY = tlY + 15;
+  int seekW = 980;
+  int seekH = 30;
+  if (mouseX > seekX && mouseX < seekX + seekW &&
+      mouseY > seekY && mouseY < seekY + seekH) {
+    float clickPos = (mouseX - seekX) / float(seekW);
+    float newTime = clickPos * movie.duration();
+    movie.jump(newTime);
+    println("⏩ 비디오 시간 이동: " + formatTime(newTime));
+    return true;
+  }
+
+  return false;
+}
+
+// 비디오 재생
+void playVideo() {
+  if (movie == null) return;
+  movie.play();
+  isPlaying = true;
+  println("▶ 비디오 재생 시작");
+}
+
+// 비디오 일시정지
+void pauseVideo() {
+  if (movie == null) return;
+  movie.pause();
+  isPlaying = false;
+  println("⏸ 비디오 일시정지");
+}
+
+// 비디오 정지
+void stopVideo() {
+  if (movie == null) return;
+  movie.stop();
+  movie.jump(0);
+  isPlaying = false;
+  videoTime = 0;
+  println("■ 비디오 정지");
 }

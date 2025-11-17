@@ -684,8 +684,9 @@ void drawSelectedKeyframeInfo(int tlY) {
   textAlign(LEFT, TOP);
   text("⚡ Selected Keyframe #" + (selectedKeyframe + 1) + " @ " + formatTime(kf.timestamp), 30, infoY);
 
-  // 저장 버튼 (헤더 오른쪽)
-  drawSaveButton(1200, infoY - 5);
+  // 버튼들 (헤더 오른쪽)
+  drawInterpolateButton(1050, infoY - 5);  // 보간 모드 토글
+  drawSaveButton(1200, infoY - 5);         // 저장
 
   // 채널 값 표시 (3줄로 나눠서)
   fill(200, 220, 255);
@@ -751,6 +752,52 @@ void drawSaveButton(int x, int y) {
   textSize(12);
   textAlign(CENTER, CENTER);
   String label = hasUnsavedChanges ? "💾 Save [S]" : "✓ Saved";
+  text(label, x + btnW/2, y + btnH/2);
+  textAlign(LEFT, BASELINE);
+  strokeWeight(1);
+}
+
+// 보간 모드 토글 버튼
+void drawInterpolateButton(int x, int y) {
+  if (selectedKeyframe < 0 || selectedKeyframe >= timeline.size()) {
+    return;  // 선택된 키프레임 없음
+  }
+
+  Keyframe kf = timeline.get(selectedKeyframe);
+  int btnW = 120;
+  int btnH = 30;
+
+  boolean hover = mouseX > x && mouseX < x + btnW && mouseY > y && mouseY < y + btnH;
+
+  // 배경색 (보간 모드에 따라)
+  if (kf.interpolateToNext) {
+    // 보간 모드
+    if (hover) {
+      fill(100, 150, 220);
+      stroke(150, 200, 255);
+    } else {
+      fill(80, 120, 180);
+      stroke(100, 150, 220);
+    }
+  } else {
+    // 즉시 전환 모드
+    if (hover) {
+      fill(180, 150, 100);
+      stroke(255, 200, 150);
+    } else {
+      fill(150, 120, 80);
+      stroke(200, 150, 100);
+    }
+  }
+
+  strokeWeight(2);
+  rect(x, y, btnW, btnH, 3);
+
+  // 텍스트
+  fill(255, 255, 200);
+  textSize(12);
+  textAlign(CENTER, CENTER);
+  String label = kf.interpolateToNext ? "🔄 Fade" : "⚡ Instant";
   text(label, x + btnW/2, y + btnH/2);
   textAlign(LEFT, BASELINE);
   strokeWeight(1);
@@ -1916,10 +1963,19 @@ void resetAllChannels() {
 class Keyframe {
   float timestamp;  // 비디오 시간 (초)
   int[] dmxValues;  // 18채널 DMX 값 (0-255)
+  boolean interpolateToNext;  // 다음 키프레임까지 보간 여부 (기본: false = 즉시 전환)
 
   Keyframe(float t, int[] values) {
     timestamp = t;
     dmxValues = values.clone();  // 배열 복사
+    interpolateToNext = false;  // 기본값: 즉시 전환
+  }
+
+  // 보간 설정을 포함한 생성자
+  Keyframe(float t, int[] values, boolean interpolate) {
+    timestamp = t;
+    dmxValues = values.clone();
+    interpolateToNext = interpolate;
   }
 }
 
@@ -2076,11 +2132,13 @@ void drawKeyframeMarkers(int x, int y, int w, int h, float duration) {
     Keyframe kf = timeline.get(i);
     float markerX = x + w * (kf.timestamp / duration);
 
-    // 선택된 키프레임은 다른 색
+    // 색상 설정: 선택 > 보간 모드 > 기본
     if (i == selectedKeyframe) {
-      fill(255, 200, 100);
+      fill(255, 200, 100);  // 선택됨: 주황색
+    } else if (kf.interpolateToNext) {
+      fill(100, 180, 255);  // 보간 모드: 파란색
     } else {
-      fill(100, 255, 100);
+      fill(100, 255, 100);  // 즉시 전환: 녹색
     }
 
     // 삼각형 마커 (크기 2배 확대)
@@ -2107,16 +2165,29 @@ boolean handleTimelineClick() {
   int previewX = 30;
   int previewW = 80;
 
-  // 저장 버튼 클릭 확인 (키프레임 선택 시에만 표시)
+  // 키프레임 선택 시 버튼 클릭 확인
   if (selectedKeyframe >= 0 && selectedKeyframe < timeline.size()) {
     int infoY = tlY + 70;
-    int saveX = 1200;
-    int saveY = infoY - 5;
-    int saveW = 120;
-    int saveH = 30;
+    int btnW = 120;
+    int btnH = 30;
+    int btnY = infoY - 5;
 
-    if (mouseX > saveX && mouseX < saveX + saveW &&
-        mouseY > saveY && mouseY < saveY + saveH) {
+    // 보간 모드 토글 버튼 클릭 확인
+    int interpX = 1050;
+    if (mouseX > interpX && mouseX < interpX + btnW &&
+        mouseY > btnY && mouseY < btnY + btnH) {
+      Keyframe kf = timeline.get(selectedKeyframe);
+      kf.interpolateToNext = !kf.interpolateToNext;  // 토글
+      hasUnsavedChanges = true;
+      String mode = kf.interpolateToNext ? "보간 모드" : "즉시 전환 모드";
+      println("🔄 키프레임 #" + (selectedKeyframe + 1) + " → " + mode);
+      return true;
+    }
+
+    // 저장 버튼 클릭 확인
+    int saveX = 1200;
+    if (mouseX > saveX && mouseX < saveX + btnW &&
+        mouseY > btnY && mouseY < btnY + btnH) {
       if (hasUnsavedChanges) {
         saveSequence("sequence.json");
         hasUnsavedChanges = false;
@@ -2293,7 +2364,7 @@ void deleteSelectedKeyframe() {
 }
 
 // ============================================
-// 타임라인 동기화 (키프레임 값 유지 - 보간 없음)
+// 타임라인 동기화 (즉시 전환 or 보간 - 키프레임 설정에 따름)
 // ============================================
 void updateDMXFromTimeline() {
   if (timeline.size() == 0 || movie == null) return;
@@ -2302,19 +2373,36 @@ void updateDMXFromTimeline() {
 
   // 현재 시간 이전의 가장 가까운 키프레임 찾기
   Keyframe activeKF = null;
+  int activeIndex = -1;
 
   for (int i = 0; i < timeline.size(); i++) {
     Keyframe kf = timeline.get(i);
     if (kf.timestamp <= currentTime) {
       activeKF = kf;  // 현재 시간 이전 키프레임 중 가장 늦은 것
+      activeIndex = i;
     } else {
       break;  // 현재 시간 이후 키프레임은 무시
     }
   }
 
-  // 활성 키프레임 적용 (해당 키프레임 값을 다음 키프레임까지 유지)
+  // 활성 키프레임 적용
   if (activeKF != null) {
-    applyKeyframe(activeKF);
+    // 보간 모드 체크: interpolateToNext가 true이고 다음 키프레임이 있으면 보간
+    if (activeKF.interpolateToNext && activeIndex < timeline.size() - 1) {
+      Keyframe nextKF = timeline.get(activeIndex + 1);
+
+      // 현재 시간이 다음 키프레임 이전이면 보간
+      if (currentTime < nextKF.timestamp) {
+        float t = (currentTime - activeKF.timestamp) / (nextKF.timestamp - activeKF.timestamp);
+        interpolateKeyframes(activeKF, nextKF, t);
+      } else {
+        // 다음 키프레임 시간을 넘었으면 즉시 적용 (이 경우는 일어나지 않아야 함)
+        applyKeyframe(activeKF);
+      }
+    } else {
+      // 즉시 전환 모드: 해당 키프레임 값을 다음 키프레임까지 유지
+      applyKeyframe(activeKF);
+    }
   }
   // activeKF가 null이면 (첫 키프레임 이전) 아무것도 안 함
 }
@@ -2370,6 +2458,7 @@ void saveSequence(String filename) {
     JSONObject jsonKF = new JSONObject();
 
     jsonKF.setFloat("timestamp", kf.timestamp);
+    jsonKF.setBoolean("interpolateToNext", kf.interpolateToNext);  // 보간 설정 저장
 
     JSONArray jsonValues = new JSONArray();
     for (int ch = 0; ch < 18; ch++) {
@@ -2401,7 +2490,10 @@ void loadSequence(String filename) {
         dmxValues[ch] = jsonValues.getInt(ch);
       }
 
-      Keyframe kf = new Keyframe(timestamp, dmxValues);
+      // 보간 설정 로드 (하위 호환성: 없으면 기본값 false)
+      boolean interpolate = jsonKF.hasKey("interpolateToNext") ? jsonKF.getBoolean("interpolateToNext") : false;
+
+      Keyframe kf = new Keyframe(timestamp, dmxValues, interpolate);
       timeline.add(kf);
     }
 

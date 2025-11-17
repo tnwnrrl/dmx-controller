@@ -19,3 +19,6 @@ build-tmp/
 .Trashes
 .VolumeIcon.icns
 .com.apple.timemachine.donotpresent
+
+# Data files
+data/video.mp4

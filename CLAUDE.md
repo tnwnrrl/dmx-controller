@@ -103,9 +103,9 @@ The entire application is in `dmx.pde` (~1300 lines). Processing sketches use a 
 - CH17-18: Frost on/off, Auto Program
 
 **Layout Constants**:
-- Window: 1800x750px
+- Window: 1400x800px
 - DMX Monitor: Y=480, Height=140px
-- Timeline: Y=630
+- Timeline: Y=630, Height=120px
 - Presets: Y=710
 - Tab content starts: Y=110
 - Standard margin: 30px
@@ -115,12 +115,119 @@ The entire application is in `dmx.pde` (~1300 lines). Processing sketches use a 
 - `syncUIFromDMX()` rebuilds UI state from `dmxChannels[]` array (used after preset recall)
 - Some channels have special update functions: `updateStrobeChannel()`, `updateColorChannel()`, `updateGoboChannel()`
 
-## Future Extension Points
+## Phase 3: Video Timeline Sequencer
 
-**Timeline/Sequencer** (Phase 3):
-- `Keyframe` class defined but not implemented
-- `isRecording`, `isPlaying`, `timeline` variables reserved
-- UI space allocated at Y=630
+**IMPLEMENTED** - The video timeline system is fully operational with keyframe-based DMX sequencing.
+
+### Core Architecture
+
+**Video Integration**:
+- Uses Processing's `Movie` class for video playback
+- Video file: `data/video.mp4` (hardcoded path)
+- `movieEvent(Movie m)` callback reads frames at ~60 FPS
+- Timeline synchronized to video time via `movie.time()`
+
+**Keyframe System**:
+- `Keyframe` class stores: `timestamp` (float seconds), `dmxValues[]` (18 channels), `interpolateToNext` (boolean)
+- `timeline` ArrayList maintains chronologically sorted keyframes
+- Keyframes persist to `data/sequence.json` with JSON serialization
+
+**Playback Modes**:
+1. **Instant Switching (default)**: Keyframe values held constant until next keyframe
+2. **Interpolation**: When `interpolateToNext=true`, linear fade to next keyframe
+   - Uses `interpolateKeyframes(kf1, kf2, t)` for smooth transitions
+   - Only sends changed DMX channels (performance optimization)
+
+**DMX Performance Optimization**:
+- `applyKeyframe()` and `interpolateKeyframes()` only send changed channels
+- Prevents serial buffer overflow (was 1,080 commands/sec, now 80-95% reduction)
+- Critical for 60 FPS video playback without stuttering
+
+### User Workflow
+
+**Keyframe Creation**:
+1. Play/pause video with spacebar or playback controls
+2. Adjust DMX channels via UI (any tab)
+3. Press **K key** to capture current state as keyframe
+   - Auto-saves to `data/sequence.json`
+   - Keyframe appears as triangle marker on timeline
+
+**Keyframe Editing**:
+1. Click keyframe marker (triangle) to select (turns orange)
+2. Keyframe info panel shows all 18 channel values
+3. Adjust any DMX channel - values update in real-time
+4. Press **S key** or click "💾 Save" button to persist changes
+   - `hasUnsavedChanges` flag tracks dirty state
+   - Only keyframe edits require manual save (K/Delete auto-save)
+
+**Keyframe Deletion**:
+- Select keyframe, press **Delete/Backspace**
+- Auto-saves after deletion
+
+**Interpolation Toggle**:
+- Select keyframe, click "⚡ Instant" or "🔄 Fade" button
+- Visual indicator: Green markers = instant, Blue markers = interpolation
+- Selected keyframe always shows orange
+
+**Timeline Navigation**:
+- Click seekbar to jump to time (applies nearest keyframe values)
+- Click keyframe marker to jump and select
+- Seekbar shows video position, progress bar, and keyframe markers
+
+### Key Functions
+
+**Timeline Sync**:
+- `updateDMXFromTimeline()` - Called every frame during playback
+  - Finds active keyframe (most recent before current time)
+  - Checks `interpolateToNext` flag
+  - Applies instant or interpolated values
+
+**Keyframe Operations**:
+- `addKeyframe()` - Captures current DMX state at video time
+- `deleteSelectedKeyframe()` - Removes selected keyframe
+- `applyKeyframe(kf)` - Sets DMX channels from keyframe (delta-only)
+- `interpolateKeyframes(kf1, kf2, t)` - Linear blend between keyframes
+
+**Persistence**:
+- `saveSequence(filename)` - JSON export with all keyframe data
+- `loadSequence(filename)` - Loads on startup, backward compatible
+- Format: `[{timestamp, dmxValues[], interpolateToNext}, ...]`
+
+### Timeline Controls
+
+**Playback**:
+- Stop (■) - Reset to start, stop playback
+- Play (▶) - Start/resume playback
+- Pause (⏸) - Pause at current position
+- Spacebar - Toggle play/pause
+
+**Keyboard Shortcuts**:
+- **K** - Add keyframe at current time
+- **S** - Save keyframe changes (when keyframe selected)
+- **Delete/Backspace** - Delete selected keyframe
+- **Spacebar** - Play/pause toggle
+
+### Visual Indicators
+
+**Keyframe Markers** (triangles above seekbar):
+- Orange = Selected keyframe
+- Blue = Interpolation mode enabled
+- Green = Instant switching mode
+
+**Keyframe Info Panel** (shown when keyframe selected):
+- Displays all 18 channel values (3 rows of 6 channels)
+- Interpolation toggle button
+- Save button with unsaved changes indicator
+
+### Technical Notes
+
+- Timeline area: 120px height (expanded from original 60px)
+- Keyframe markers: 16px triangles (doubled from 8px for easier clicking)
+- Click detection: 10px tolerance around markers
+- Video preview: 80x60px thumbnail at Y=630
+- Sequence file updates only on K press, Delete, or S key (not on slider changes)
+
+## Future Extension Points
 
 **Multi-Device Support**:
 - Currently no DMX start address offset
@@ -128,9 +235,13 @@ The entire application is in `dmx.pde` (~1300 lines). Processing sketches use a 
 - Modify `sendDMX()`: `actualChannel = dmxStartAddress + (channel - 1)`
 - Add UI input field for address configuration
 
+**Video Path Configuration**:
+- Currently hardcoded to `data/video.mp4`
+- Consider adding file picker or config file for video path
+
 ## Development Notes
 
 - User prefers Korean comments in code
 - UI optimization focused on usability: large click areas, clear visual feedback
 - Git commits use conventional format with Claude Code attribution
-- All slider interactions recently enhanced for easier operation (Nov 2024)
+- Phase 3 video timeline completed November 2024 with full interpolation support

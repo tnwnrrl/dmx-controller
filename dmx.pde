@@ -26,14 +26,14 @@ final int RESET_BTN_W = 120;
 final int RESET_BTN_H = 30;
 
 // ============================================
-// DMX 채널 데이터 (18채널)
+// DMX 채널 데이터 (30채널)
 // ============================================
-int[] dmxChannels = new int[18];
+int[] dmxChannels = new int[30];
 
 // ============================================
 // UI 탭 시스템
 // ============================================
-String[] tabs = {"Position", "Light", "Gobo", "Beam", "Effects"};
+String[] tabs = {"Position", "Light", "Gobo", "Beam", "Effects", "PAR", "Ellip", "Fog"};
 int currentTab = 0;
 
 // ============================================
@@ -76,6 +76,30 @@ boolean frostOn = false;  // CH17: Frost
 int autoProgram = 0;      // CH18: Auto program
 
 // ============================================
+// PAR 탭 변수 (CH19-25) - RGBW PAR Light
+// ============================================
+int parDimmer = 0;        // CH19: Dimmer
+int parRed = 0;           // CH20: Red
+int parGreen = 0;         // CH21: Green
+int parBlue = 0;          // CH22: Blue
+int parWhite = 0;         // CH23: White
+int parStrobe = 0;        // CH24: Strobe
+int parAuto = 0;          // CH25: Auto/Sound mode
+
+// ============================================
+// Ellip 탭 변수 (CH26-29) - Ellipsoidal Lights x2
+// ============================================
+int ellip1Dimmer = 0;     // CH26: Ellip 1 Dimmer
+int ellip1Strobe = 0;     // CH27: Ellip 1 Strobe
+int ellip2Dimmer = 0;     // CH28: Ellip 2 Dimmer
+int ellip2Strobe = 0;     // CH29: Ellip 2 Strobe
+
+// ============================================
+// Fog 탭 변수 (CH30) - Antari Z-1500III
+// ============================================
+int fogOutput = 0;        // CH30: Fog output
+
+// ============================================
 // 타임라인/시퀀서 변수 (Phase 3 - Video Sequencer)
 // ============================================
 boolean isRecording = false;
@@ -96,12 +120,12 @@ int maxHistorySize = 7;
 // 숫자 직접 입력 모드 변수
 // ============================================
 boolean isInputMode = false;
-int inputChannel = 0;        // 입력 중인 채널 (1-18)
+int inputChannel = 0;        // 입력 중인 채널 (1-30)
 String inputValue = "";      // 입력 중인 값 문자열
 int inputMinValue = 0;       // 입력 가능 최소값
 int inputMaxValue = 255;     // 입력 가능 최대값
 
-// 채널명 매핑 (CH1-18)
+// 채널명 매핑 (CH1-30)
 String[] channelNames = {
   "Pan",              // CH1
   "Pan Fine",         // CH2
@@ -120,7 +144,22 @@ String[] channelNames = {
   "Prism",            // CH15
   "Prism Rotation",   // CH16
   "Frost",            // CH17
-  "Auto Program"      // CH18
+  "Auto Program",     // CH18
+  // PAR Light (CH19-25)
+  "PAR Dimmer",       // CH19
+  "PAR Red",          // CH20
+  "PAR Green",        // CH21
+  "PAR Blue",         // CH22
+  "PAR White",        // CH23
+  "PAR Strobe",       // CH24
+  "PAR Auto",         // CH25
+  // Ellipsoidal Lights (CH26-29)
+  "Ellip1 Dimmer",    // CH26
+  "Ellip1 Strobe",    // CH27
+  "Ellip2 Dimmer",    // CH28
+  "Ellip2 Strobe",    // CH29
+  // Fog Machine (CH30)
+  "Fog Output"        // CH30
 };
 
 // ============================================
@@ -150,7 +189,22 @@ int[] defaultChannelValues = {
   0,    // CH15: Prism
   0,    // CH16: Prism Rotation
   0,    // CH17: Frost
-  0     // CH18: Auto Program
+  0,    // CH18: Auto Program
+  // PAR Light (CH19-25)
+  0,    // CH19: PAR Dimmer
+  0,    // CH20: PAR Red
+  0,    // CH21: PAR Green
+  0,    // CH22: PAR Blue
+  0,    // CH23: PAR White
+  0,    // CH24: PAR Strobe
+  0,    // CH25: PAR Auto
+  // Ellipsoidal Lights (CH26-29)
+  0,    // CH26: Ellip1 Dimmer
+  0,    // CH27: Ellip1 Strobe
+  0,    // CH28: Ellip2 Dimmer
+  0,    // CH29: Ellip2 Strobe
+  // Fog Machine (CH30)
+  0     // CH30: Fog Output
 };
 
 void setup() {
@@ -161,11 +215,11 @@ void setup() {
   printArray(Serial.list());
 
   try {
-    myPort = new Serial(this, "/dev/tty.usbmodem1101", 115200);
-    println("✓ 시리얼 포트 연결 성공: /dev/tty.usbmodem1201");
+    myPort = new Serial(this, "/dev/tty.usbmodem11301", 115200);
+    println("✓ 시리얼 포트 연결 성공: /dev/tty.usbmodem11301");
   } catch (Exception e) {
     println("✗ 에러: 시리얼 포트를 열 수 없습니다");
-    println("  포트: /dev/tty.usbmodem1201");
+    println("  포트: /dev/tty.usbmodem11301");
     println("  원인: " + e.getMessage());
     println("  → DMX 장치가 연결되어 있는지 확인하세요");
     println("  → 프로그램은 계속 실행되지만 DMX 명령은 전송되지 않습니다");
@@ -173,7 +227,7 @@ void setup() {
   }
 
   // 초기화
-  for (int i = 0; i < 18; i++) {
+  for (int i = 0; i < 30; i++) {
     dmxChannels[i] = 0;
   }
 
@@ -195,7 +249,7 @@ void draw() {
   // 타이틀
   fill(255);
   textSize(20);
-  text("DMX 18-Channel Moving Head Controller", 20, 30);
+  text("DMX 30-Channel Multi-Device Controller", 20, 30);
 
   // 탭 메뉴 그리기
   drawTabs();
@@ -219,7 +273,7 @@ void draw() {
 // 탭 메뉴 그리기
 // ============================================
 void drawTabs() {
-  int tabWidth = 150;
+  int tabWidth = 120;  // 8탭 지원을 위해 축소
   int tabHeight = 40;
   int tabY = 50;
 
@@ -267,6 +321,15 @@ void drawCurrentTab() {
       break;
     case 4: // Effects
       drawEffectsTab(contentY);
+      break;
+    case 5: // PAR
+      drawPARTab(contentY);
+      break;
+    case 6: // Ellip
+      drawEllipTab(contentY);
+      break;
+    case 7: // Fog
+      drawFogTab(contentY);
       break;
   }
 }
@@ -465,6 +528,148 @@ void drawEffectsTab(int yPos) {
   int autoY = startY + 50;
   drawSlider(startX, autoY, 350, "Auto Program", autoProgram, 0, 131);
   drawValueBox(startX + 360, autoY, autoProgram, null);
+}
+
+// ============================================
+// PAR 탭 (CH19-25) - RGBW PAR Light
+// ============================================
+void drawPARTab(int yPos) {
+  fill(255);
+  textSize(18);
+  text("RGBW PAR Light (CH19-25)", 30, yPos + 20);
+
+  int margin = 30;
+  int startX = TAB_CONTENT_X;
+  int startY = yPos + TAB_CONTENT_OFFSET_Y;
+  int sliderWidth = 300;
+  int rowHeight = 50;
+
+  // Dimmer (CH19)
+  drawSlider(startX, startY, sliderWidth, "Dimmer", parDimmer, 0, 255);
+  drawValueBox(startX + sliderWidth + 10, startY, parDimmer, null);
+
+  // RGBW 슬라이더들
+  int colorStartY = startY + rowHeight;
+
+  // Red (CH20)
+  fill(255, 100, 100);
+  drawSlider(startX, colorStartY, sliderWidth, "Red", parRed, 0, 255);
+  drawValueBox(startX + sliderWidth + 10, colorStartY, parRed, null);
+
+  // Green (CH21)
+  fill(100, 255, 100);
+  drawSlider(startX, colorStartY + rowHeight, sliderWidth, "Green", parGreen, 0, 255);
+  drawValueBox(startX + sliderWidth + 10, colorStartY + rowHeight, parGreen, null);
+
+  // Blue (CH22)
+  fill(100, 100, 255);
+  drawSlider(startX, colorStartY + rowHeight * 2, sliderWidth, "Blue", parBlue, 0, 255);
+  drawValueBox(startX + sliderWidth + 10, colorStartY + rowHeight * 2, parBlue, null);
+
+  // White (CH23)
+  fill(255);
+  drawSlider(startX, colorStartY + rowHeight * 3, sliderWidth, "White", parWhite, 0, 255);
+  drawValueBox(startX + sliderWidth + 10, colorStartY + rowHeight * 3, parWhite, null);
+
+  // 오른쪽 열: Strobe, Auto
+  int rightX = startX + 450;
+
+  // Strobe (CH24)
+  fill(255);
+  drawSlider(rightX, startY, sliderWidth, "Strobe", parStrobe, 0, 255);
+  drawValueBox(rightX + sliderWidth + 10, startY, parStrobe, null);
+
+  // Auto/Sound (CH25)
+  drawSlider(rightX, startY + rowHeight, sliderWidth, "Auto/Sound", parAuto, 0, 255);
+  drawValueBox(rightX + sliderWidth + 10, startY + rowHeight, parAuto, null);
+
+  // 색상 미리보기
+  int previewX = rightX;
+  int previewY = startY + rowHeight * 2 + 20;
+  fill(parRed, parGreen, parBlue);
+  stroke(100);
+  strokeWeight(2);
+  rect(previewX, previewY, 100, 100, 10);
+  fill(255);
+  textSize(12);
+  text("Color Preview", previewX, previewY - 5);
+}
+
+// ============================================
+// Ellip 탭 (CH26-29) - Ellipsoidal Lights x2
+// ============================================
+void drawEllipTab(int yPos) {
+  fill(255);
+  textSize(18);
+  text("Ellipsoidal Lights (CH26-29)", 30, yPos + 20);
+
+  int margin = 30;
+  int startX = TAB_CONTENT_X;
+  int startY = yPos + TAB_CONTENT_OFFSET_Y;
+  int sliderWidth = 300;
+  int rowHeight = 50;
+
+  // Ellip 1 섹션
+  fill(255, 220, 150);
+  textSize(16);
+  text("Ellip 1", startX, startY - 5);
+
+  fill(255);
+  // Ellip 1 Dimmer (CH26)
+  drawSlider(startX, startY + 20, sliderWidth, "Dimmer", ellip1Dimmer, 0, 255);
+  drawValueBox(startX + sliderWidth + 10, startY + 20, ellip1Dimmer, null);
+
+  // Ellip 1 Strobe (CH27)
+  drawSlider(startX, startY + 20 + rowHeight, sliderWidth, "Strobe", ellip1Strobe, 0, 255);
+  drawValueBox(startX + sliderWidth + 10, startY + 20 + rowHeight, ellip1Strobe, null);
+
+  // Ellip 2 섹션
+  int ellip2X = startX + 450;
+  fill(255, 220, 150);
+  textSize(16);
+  text("Ellip 2", ellip2X, startY - 5);
+
+  fill(255);
+  // Ellip 2 Dimmer (CH28)
+  drawSlider(ellip2X, startY + 20, sliderWidth, "Dimmer", ellip2Dimmer, 0, 255);
+  drawValueBox(ellip2X + sliderWidth + 10, startY + 20, ellip2Dimmer, null);
+
+  // Ellip 2 Strobe (CH29)
+  drawSlider(ellip2X, startY + 20 + rowHeight, sliderWidth, "Strobe", ellip2Strobe, 0, 255);
+  drawValueBox(ellip2X + sliderWidth + 10, startY + 20 + rowHeight, ellip2Strobe, null);
+}
+
+// ============================================
+// Fog 탭 (CH30) - Antari Z-1500III
+// ============================================
+void drawFogTab(int yPos) {
+  fill(255);
+  textSize(18);
+  text("Fog Machine - Antari Z-1500III (CH30)", 30, yPos + 20);
+
+  int margin = 30;
+  int startX = TAB_CONTENT_X;
+  int startY = yPos + TAB_CONTENT_OFFSET_Y;
+
+  // 큰 수직 슬라이더 스타일의 출력 조절
+  fill(255);
+  textSize(14);
+  text("Fog Output", startX, startY);
+
+  // 수평 슬라이더
+  drawSlider(startX, startY + 20, 400, "Output", fogOutput, 0, 255);
+  drawValueBox(startX + 410, startY + 20, fogOutput, null);
+
+  // 퍼센트 표시
+  int percent = int(map(fogOutput, 0, 255, 0, 100));
+  fill(200, 200, 255);
+  textSize(24);
+  text(percent + "%", startX + 500, startY + 40);
+
+  // 안전 경고
+  fill(255, 150, 100);
+  textSize(12);
+  text("⚠️ 연무기 과열 주의 - 연속 사용 시 쿨다운 시간 필요", startX, startY + 100);
 }
 
 // ============================================
@@ -1165,6 +1370,102 @@ boolean checkValueBoxClick() {
       return checkBeamValueBox(contentY);
     case 4: // Effects 탭
       return checkEffectsValueBox(contentY);
+    case 5: // PAR 탭
+      return checkPARValueBox(contentY);
+    case 6: // Ellip 탭
+      return checkEllipValueBox(contentY);
+    case 7: // Fog 탭
+      return checkFogValueBox(contentY);
+  }
+  return false;
+}
+
+// PAR 탭 값 박스 클릭 체크
+boolean checkPARValueBox(int yPos) {
+  int startX = TAB_CONTENT_X;
+  int startY = yPos + TAB_CONTENT_OFFSET_Y;
+  int sliderW = 300;
+  int rowHeight = 50;
+  int rightX = startX + 450;
+
+  // Dimmer
+  if (isInsideBox(startX + sliderW + 10, startY, 50, 25)) {
+    activateInputMode(19, 0, 255);
+    return true;
+  }
+  // Red
+  if (isInsideBox(startX + sliderW + 10, startY + rowHeight, 50, 25)) {
+    activateInputMode(20, 0, 255);
+    return true;
+  }
+  // Green
+  if (isInsideBox(startX + sliderW + 10, startY + rowHeight * 2, 50, 25)) {
+    activateInputMode(21, 0, 255);
+    return true;
+  }
+  // Blue
+  if (isInsideBox(startX + sliderW + 10, startY + rowHeight * 3, 50, 25)) {
+    activateInputMode(22, 0, 255);
+    return true;
+  }
+  // White
+  if (isInsideBox(startX + sliderW + 10, startY + rowHeight * 4, 50, 25)) {
+    activateInputMode(23, 0, 255);
+    return true;
+  }
+  // Strobe
+  if (isInsideBox(rightX + sliderW + 10, startY, 50, 25)) {
+    activateInputMode(24, 0, 255);
+    return true;
+  }
+  // Auto
+  if (isInsideBox(rightX + sliderW + 10, startY + rowHeight, 50, 25)) {
+    activateInputMode(25, 0, 255);
+    return true;
+  }
+  return false;
+}
+
+// Ellip 탭 값 박스 클릭 체크
+boolean checkEllipValueBox(int yPos) {
+  int startX = TAB_CONTENT_X;
+  int startY = yPos + TAB_CONTENT_OFFSET_Y;
+  int sliderW = 300;
+  int rowHeight = 50;
+  int ellip2X = startX + 450;
+
+  // Ellip 1 Dimmer
+  if (isInsideBox(startX + sliderW + 10, startY + 20, 50, 25)) {
+    activateInputMode(26, 0, 255);
+    return true;
+  }
+  // Ellip 1 Strobe
+  if (isInsideBox(startX + sliderW + 10, startY + 20 + rowHeight, 50, 25)) {
+    activateInputMode(27, 0, 255);
+    return true;
+  }
+  // Ellip 2 Dimmer
+  if (isInsideBox(ellip2X + sliderW + 10, startY + 20, 50, 25)) {
+    activateInputMode(28, 0, 255);
+    return true;
+  }
+  // Ellip 2 Strobe
+  if (isInsideBox(ellip2X + sliderW + 10, startY + 20 + rowHeight, 50, 25)) {
+    activateInputMode(29, 0, 255);
+    return true;
+  }
+  return false;
+}
+
+// Fog 탭 값 박스 클릭 체크
+boolean checkFogValueBox(int yPos) {
+  int startX = TAB_CONTENT_X;
+  int startY = yPos + TAB_CONTENT_OFFSET_Y;
+
+  // Fog Output
+  if (isInsideBox(startX + 410, startY + 20, 50, 25)) {
+    activateInputMode(30, 0, 255);
+    return true;
   }
   return false;
 }
@@ -1327,6 +1628,15 @@ void handleTabClicks() {
     case 4: // Effects
       handleEffectsClicks(contentY);
       break;
+    case 5: // PAR
+      handlePARClicks(contentY);
+      break;
+    case 6: // Ellip
+      handleEllipClicks(contentY);
+      break;
+    case 7: // Fog
+      handleFogClicks(contentY);
+      break;
   }
 }
 
@@ -1348,6 +1658,15 @@ void handleTabDrags() {
       break;
     case 4: // Effects
       handleEffectsDrags(contentY);
+      break;
+    case 5: // PAR
+      handlePARDrags(contentY);
+      break;
+    case 6: // Ellip
+      handleEllipDrags(contentY);
+      break;
+    case 7: // Fog
+      handleFogDrags(contentY);
       break;
   }
 }
@@ -1688,6 +2007,159 @@ void handleEffectsDrags(int yPos) {
 }
 
 // ============================================
+// PAR 탭 인터랙션 (CH19-25)
+// ============================================
+void handlePARClicks(int yPos) {
+  // 슬라이더 클릭은 드래그 핸들러에서 처리
+  handlePARDrags(yPos);
+}
+
+void handlePARDrags(int yPos) {
+  int startX = TAB_CONTENT_X;
+  int startY = yPos + TAB_CONTENT_OFFSET_Y;
+  int sliderW = 300;
+  int rowHeight = 50;
+  int rightX = startX + 450;
+
+  // Dimmer (CH19) - y+10에서 슬라이더 시작, 높이 40
+  if (mouseX > startX && mouseX < startX + sliderW &&
+      mouseY > startY + 5 && mouseY < startY + 50) {
+    parDimmer = int(constrain(map(mouseX, startX, startX + sliderW, 0, 255), 0, 255));
+    updateDMXChannel(19, parDimmer);
+    return;
+  }
+
+  // RGBW 슬라이더들
+  int colorStartY = startY + rowHeight;
+
+  // Red (CH20)
+  if (mouseX > startX && mouseX < startX + sliderW &&
+      mouseY > colorStartY + 5 && mouseY < colorStartY + 50) {
+    parRed = int(constrain(map(mouseX, startX, startX + sliderW, 0, 255), 0, 255));
+    updateDMXChannel(20, parRed);
+    return;
+  }
+
+  // Green (CH21)
+  if (mouseX > startX && mouseX < startX + sliderW &&
+      mouseY > colorStartY + rowHeight + 5 && mouseY < colorStartY + rowHeight + 50) {
+    parGreen = int(constrain(map(mouseX, startX, startX + sliderW, 0, 255), 0, 255));
+    updateDMXChannel(21, parGreen);
+    return;
+  }
+
+  // Blue (CH22)
+  if (mouseX > startX && mouseX < startX + sliderW &&
+      mouseY > colorStartY + rowHeight * 2 + 5 && mouseY < colorStartY + rowHeight * 2 + 50) {
+    parBlue = int(constrain(map(mouseX, startX, startX + sliderW, 0, 255), 0, 255));
+    updateDMXChannel(22, parBlue);
+    return;
+  }
+
+  // White (CH23)
+  if (mouseX > startX && mouseX < startX + sliderW &&
+      mouseY > colorStartY + rowHeight * 3 + 5 && mouseY < colorStartY + rowHeight * 3 + 50) {
+    parWhite = int(constrain(map(mouseX, startX, startX + sliderW, 0, 255), 0, 255));
+    updateDMXChannel(23, parWhite);
+    return;
+  }
+
+  // Strobe (CH24)
+  if (mouseX > rightX && mouseX < rightX + sliderW &&
+      mouseY > startY + 5 && mouseY < startY + 50) {
+    parStrobe = int(constrain(map(mouseX, rightX, rightX + sliderW, 0, 255), 0, 255));
+    updateDMXChannel(24, parStrobe);
+    return;
+  }
+
+  // Auto/Sound (CH25)
+  if (mouseX > rightX && mouseX < rightX + sliderW &&
+      mouseY > startY + rowHeight + 5 && mouseY < startY + rowHeight + 50) {
+    parAuto = int(constrain(map(mouseX, rightX, rightX + sliderW, 0, 255), 0, 255));
+    updateDMXChannel(25, parAuto);
+    return;
+  }
+}
+
+// ============================================
+// Ellip 탭 인터랙션 (CH26-29)
+// ============================================
+void handleEllipClicks(int yPos) {
+  handleEllipDrags(yPos);
+}
+
+void handleEllipDrags(int yPos) {
+  int startX = TAB_CONTENT_X;
+  int startY = yPos + TAB_CONTENT_OFFSET_Y;
+  int sliderW = 300;
+  int rowHeight = 50;
+  int ellip2X = startX + 450;
+
+  // Ellip 1 Dimmer (CH26)
+  if (mouseX > startX && mouseX < startX + sliderW &&
+      mouseY > startY + 25 && mouseY < startY + 70) {
+    ellip1Dimmer = int(constrain(map(mouseX, startX, startX + sliderW, 0, 255), 0, 255));
+    updateDMXChannel(26, ellip1Dimmer);
+    return;
+  }
+
+  // Ellip 1 Strobe (CH27)
+  if (mouseX > startX && mouseX < startX + sliderW &&
+      mouseY > startY + 20 + rowHeight + 5 && mouseY < startY + 20 + rowHeight + 50) {
+    ellip1Strobe = int(constrain(map(mouseX, startX, startX + sliderW, 0, 255), 0, 255));
+    updateDMXChannel(27, ellip1Strobe);
+    return;
+  }
+
+  // Ellip 2 Dimmer (CH28)
+  if (mouseX > ellip2X && mouseX < ellip2X + sliderW &&
+      mouseY > startY + 25 && mouseY < startY + 70) {
+    ellip2Dimmer = int(constrain(map(mouseX, ellip2X, ellip2X + sliderW, 0, 255), 0, 255));
+    updateDMXChannel(28, ellip2Dimmer);
+    return;
+  }
+
+  // Ellip 2 Strobe (CH29)
+  if (mouseX > ellip2X && mouseX < ellip2X + sliderW &&
+      mouseY > startY + 20 + rowHeight + 5 && mouseY < startY + 20 + rowHeight + 50) {
+    ellip2Strobe = int(constrain(map(mouseX, ellip2X, ellip2X + sliderW, 0, 255), 0, 255));
+    updateDMXChannel(29, ellip2Strobe);
+    return;
+  }
+}
+
+// ============================================
+// Fog 탭 인터랙션 (CH30)
+// ============================================
+void handleFogClicks(int yPos) {
+  handleFogDrags(yPos);
+}
+
+void handleFogDrags(int yPos) {
+  int startX = TAB_CONTENT_X;
+  int startY = yPos + TAB_CONTENT_OFFSET_Y;
+  int sliderW = 400;
+
+  // Fog Output (CH30)
+  if (mouseX > startX && mouseX < startX + sliderW &&
+      mouseY > startY + 25 && mouseY < startY + 70) {
+    fogOutput = int(constrain(map(mouseX, startX, startX + sliderW, 0, 255), 0, 255));
+    updateDMXChannel(30, fogOutput);
+    return;
+  }
+}
+
+// 슬라이더 영역 체크 헬퍼
+boolean isSliderArea(int x, int y, int w) {
+  return mouseX > x && mouseX < x + w && mouseY > y && mouseY < y + 50;
+}
+
+// 슬라이더 값 계산 헬퍼
+int sliderValue(int x, int w, int minVal, int maxVal) {
+  return int(constrain(map(mouseX, x, x + w, minVal, maxVal), minVal, maxVal));
+}
+
+// ============================================
 // DMX 채널 업데이트 헬퍼
 // ============================================
 void updateDMXChannel(int channel, int value) {
@@ -1838,6 +2310,7 @@ void keyPressed() {
 // DMX → UI 동기화
 // ============================================
 void syncUIFromDMX() {
+  // Moving Head (CH1-18)
   panValue = dmxChannels[0];
   tiltValue = dmxChannels[2];
   xySpeed = dmxChannels[4];
@@ -1849,6 +2322,24 @@ void syncUIFromDMX() {
   zoom = dmxChannels[13];
   prismRotation = dmxChannels[15];
   autoProgram = dmxChannels[17];
+
+  // PAR Light (CH19-25)
+  parDimmer = dmxChannels[18];
+  parRed = dmxChannels[19];
+  parGreen = dmxChannels[20];
+  parBlue = dmxChannels[21];
+  parWhite = dmxChannels[22];
+  parStrobe = dmxChannels[23];
+  parAuto = dmxChannels[24];
+
+  // Ellipsoidal Lights (CH26-29)
+  ellip1Dimmer = dmxChannels[25];
+  ellip1Strobe = dmxChannels[26];
+  ellip2Dimmer = dmxChannels[27];
+  ellip2Strobe = dmxChannels[28];
+
+  // Fog Machine (CH30)
+  fogOutput = dmxChannels[29];
 }
 
 // ============================================
@@ -1962,7 +2453,7 @@ void resetAllChannels() {
 // ============================================
 class Keyframe {
   float timestamp;  // 비디오 시간 (초)
-  int[] dmxValues;  // 18채널 DMX 값 (0-255)
+  int[] dmxValues;  // 30채널 DMX 값 (0-255)
   boolean interpolateToNext;  // 다음 키프레임까지 보간 여부 (기본: false = 즉시 전환)
 
   Keyframe(float t, int[] values) {
@@ -2318,8 +2809,8 @@ void addKeyframe() {
   float currentTime = movie.time();
 
   // 현재 DMX 채널 값을 배열로 복사
-  int[] values = new int[18];
-  for (int i = 0; i < 18; i++) {
+  int[] values = new int[30];
+  for (int i = 0; i < 30; i++) {
     values[i] = dmxChannels[i];
   }
 
@@ -2409,7 +2900,7 @@ void updateDMXFromTimeline() {
 
 // 키프레임 적용 (변경된 채널만 전송)
 void applyKeyframe(Keyframe kf) {
-  for (int i = 0; i < 18; i++) {
+  for (int i = 0; i < 30; i++) {
     int newValue = kf.dmxValues[i];
     // 값이 변경된 경우만 전송
     if (dmxChannels[i] != newValue) {
@@ -2426,7 +2917,7 @@ void applyKeyframe(Keyframe kf) {
 void interpolateKeyframes(Keyframe kf1, Keyframe kf2, float t) {
   t = constrain(t, 0, 1);  // 0~1 범위 제한
 
-  for (int i = 0; i < 18; i++) {
+  for (int i = 0; i < 30; i++) {
     int val1 = kf1.dmxValues[i];
     int val2 = kf2.dmxValues[i];
     int interpolated = int(lerp(val1, val2, t));
@@ -2461,7 +2952,7 @@ void saveSequence(String filename) {
     jsonKF.setBoolean("interpolateToNext", kf.interpolateToNext);  // 보간 설정 저장
 
     JSONArray jsonValues = new JSONArray();
-    for (int ch = 0; ch < 18; ch++) {
+    for (int ch = 0; ch < 30; ch++) {
       jsonValues.setInt(ch, kf.dmxValues[ch]);
     }
     jsonKF.setJSONArray("dmxValues", jsonValues);
@@ -2485,10 +2976,13 @@ void loadSequence(String filename) {
       float timestamp = jsonKF.getFloat("timestamp");
 
       JSONArray jsonValues = jsonKF.getJSONArray("dmxValues");
-      int[] dmxValues = new int[18];
-      for (int ch = 0; ch < 18; ch++) {
+      int[] dmxValues = new int[30];
+      // 하위 호환성: 이전 18채널 데이터 지원
+      int channelCount = min(jsonValues.size(), 30);
+      for (int ch = 0; ch < channelCount; ch++) {
         dmxValues[ch] = jsonValues.getInt(ch);
       }
+      // 새 채널은 0으로 초기화 (배열 생성 시 이미 0)
 
       // 보간 설정 로드 (하위 호환성: 없으면 기본값 false)
       boolean interpolate = jsonKF.hasKey("interpolateToNext") ? jsonKF.getBoolean("interpolateToNext") : false;

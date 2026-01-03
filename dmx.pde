@@ -2362,6 +2362,7 @@ void sendDMX(int channel, int value) {
 
   println("SEND → " + cmd);
   myPort.write(cmd);
+  delay(2);  // 시리얼 버퍼 안정화
 
   // DMX 출력 모니터에 추가 (원본 cmd 포함)
   commandHistory.add(new DMXCommand(channel, value, cmd));

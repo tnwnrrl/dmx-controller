@@ -18,6 +18,12 @@ Processing-based DMX controller for multi-device stage lighting. Controls 30 DMX
 2. Install DMXSerial library (Library Manager → "DMXSerial")
 3. Upload to Arduino Leonardo/Uno with MAX485 module
 
+**Arduino CLI (Quick Upload)**:
+```bash
+arduino-cli compile --fqbn arduino:avr:leonardo arduino_dmx
+arduino-cli upload -p /dev/cu.usbmodem11301 --fqbn arduino:avr:leonardo arduino_dmx
+```
+
 ## Architecture
 
 ### File Structure
@@ -58,7 +64,7 @@ Each tab follows pattern:
 
 | DMX | Device | Channels |
 |-----|--------|----------|
-| 1-18 | Moving Head | Pan, Tilt, Speed, Dimmer, Strobe, Color, Gobo, Focus, Zoom, Prism, Frost, Auto |
+| 1-18 | Moving Head | Pan(1), PanFine(2), Tilt(3), TiltFine(4), Speed(5), Dimmer(6), Strobe(7), Color(8-9), Gobo(10-12), Focus(13), Zoom(14), Prism(15-16), Frost(17), Auto(18) |
 | 19-25 | RGBW PAR | Dimmer, R, G, B, W, Strobe, Auto/Sound |
 | 26-27 | Ellip 1 | Dimmer, Strobe |
 | 28-29 | Ellip 2 | Dimmer, Strobe |
@@ -110,3 +116,4 @@ Tab width: 120px (8 tabs)
 - Slider click areas: 45-50px height for usability
 - Keyframe markers: 16px triangles, 10px click tolerance
 - Backward compatible JSON loading (18ch → 30ch)
+- Serial transmission requires 2ms delay between commands for buffer stability

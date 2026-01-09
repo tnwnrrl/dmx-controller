@@ -1,5 +1,11 @@
 # DMX 30-Channel Multi-Device Controller
 
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Processing](https://img.shields.io/badge/Processing-4.x-blue?logo=processing-foundation)
+![Arduino](https://img.shields.io/badge/Arduino-C++-00979D?logo=arduino)
+![DMX](https://img.shields.io/badge/DMX512-30_Channels-orange)
+![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)
+
 Processing 기반 30채널 DMX 조명 컨트롤러. 비디오 타임라인과 동기화된 키프레임 시퀀서를 지원합니다.
 
 ## 지원 장치

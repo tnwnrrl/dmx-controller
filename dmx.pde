@@ -215,7 +215,7 @@ void setup() {
   printArray(Serial.list());
 
   try {
-    myPort = new Serial(this, "/dev/tty.usbmodem11301", 115200);
+    myPort = new Serial(this, "/dev/tty.usbmodem1101", 115200);
     println("✓ 시리얼 포트 연결 성공: /dev/tty.usbmodem11301");
   } catch (Exception e) {
     println("✗ 에러: 시리얼 포트를 열 수 없습니다");
@@ -267,6 +267,11 @@ void draw() {
   if (isInputMode) {
     drawInputOverlay();
   }
+
+  // 디버그: 마우스 좌표 표시
+  fill(255, 255, 0);
+  textSize(12);
+  text("Mouse: " + mouseX + ", " + mouseY, 10, height - 10);
 }
 
 // ============================================
@@ -1323,7 +1328,7 @@ void mousePressed() {
   }
 
   // 탭 클릭 감지
-  int tabWidth = 150;
+  int tabWidth = 120;  // drawTabs()와 동일하게 맞춤
   int tabHeight = 40;
   int tabY = 50;
 
@@ -2417,36 +2422,53 @@ void sendManualCommand(String input) {
 // 모든 채널 초기화 (기본값으로 설정)
 // ============================================
 void resetAllChannels() {
-  println("🔄 모든 채널 기본값으로 초기화 시작...");
+  println("🔄 모든 채널 0으로 초기화 시작...");
 
-  // 각 채널을 기본값으로 설정 (updateDMXChannel 사용으로 키프레임도 업데이트)
-  for (int ch = 1; ch <= 18; ch++) {
-    int defaultValue = defaultChannelValues[ch - 1];
-    updateDMXChannel(ch, defaultValue);  // sendDMX 대신 updateDMXChannel 사용
+  // 모든 30채널을 0으로 설정
+  for (int ch = 1; ch <= 30; ch++) {
+    updateDMXChannel(ch, 0);
     delay(5);  // 시리얼 오버플로우 방지
   }
 
-  // UI 변수들도 기본값으로 재설정
-  panValue = 127;
-  tiltValue = 127;
-  xySpeed = 128;
+  // UI 변수들도 0으로 재설정
+  panValue = 0;
+  tiltValue = 0;
+  xySpeed = 0;
   dimmer = 0;
   strobeMode = 0;
-  strobeSpeed = 128;
+  strobeSpeed = 0;
   colorMode = 0;
   colorValue = 0;
   colorEffect = 0;
   staticGobo = 0;
   rotationGobo = 0;
   goboRotation = 0;
-  focus = 128;
-  zoom = 128;
+  focus = 0;
+  zoom = 0;
   prismOn = false;
   prismRotation = 0;
   frostOn = false;
   autoProgram = 0;
 
-  println("✓ 모든 채널이 기본값으로 초기화되었습니다");
+  // PAR 채널
+  parDimmer = 0;
+  parRed = 0;
+  parGreen = 0;
+  parBlue = 0;
+  parWhite = 0;
+  parStrobe = 0;
+  parAuto = 0;
+
+  // Ellipsoidal 채널
+  ellip1Dimmer = 0;
+  ellip1Strobe = 0;
+  ellip2Dimmer = 0;
+  ellip2Strobe = 0;
+
+  // Fog 채널
+  fogOutput = 0;
+
+  println("✓ 모든 30채널이 0으로 초기화되었습니다");
 }
 
 // ============================================
